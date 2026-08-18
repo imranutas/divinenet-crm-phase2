@@ -22,7 +22,7 @@ const campaigns = [
     status: "Draft"
   }
 ];
-
+let nextCampaignNumber = campaigns.length + 1;
 function validateCampaign(campaign) {
   const requiredFields = [
     "campaignName",
@@ -111,7 +111,7 @@ app.post("/api/campaigns", (request, response) => {
   }
 
   const newCampaign = {
-    id: `CAM-${String(campaigns.length + 1).padStart(3, "0")}`,
+    id: `CAM-${String(nextCampaignNumber++).padStart(3, "0")}`,
     campaignName: request.body.campaignName,
     client: request.body.client,
     brand: request.body.brand,
@@ -132,6 +132,76 @@ app.post("/api/campaigns", (request, response) => {
   });
 });
 
+app.put("/api/campaigns/:id", (request, response) => {
+  const campaignIndex = campaigns.findIndex(
+    (item) => item.id === request.params.id
+  );
+
+  if (campaignIndex === -1) {
+    return response.status(404).json({
+      success: false,
+      message: "Campaign not found"
+    });
+  }
+
+  const currentCampaign = campaigns[campaignIndex];
+
+  const updatedCampaign = {
+    id: currentCampaign.id,
+    campaignName:
+      request.body.campaignName ?? currentCampaign.campaignName,
+    client: request.body.client ?? currentCampaign.client,
+    brand: request.body.brand ?? currentCampaign.brand,
+    objective: request.body.objective ?? currentCampaign.objective,
+    targetAudience:
+      request.body.targetAudience ?? currentCampaign.targetAudience,
+    startDate: request.body.startDate ?? currentCampaign.startDate,
+    endDate: request.body.endDate ?? currentCampaign.endDate,
+    budget:
+      request.body.budget !== undefined
+        ? Number(request.body.budget)
+        : currentCampaign.budget,
+    channel: request.body.channel ?? currentCampaign.channel,
+    status: request.body.status ?? currentCampaign.status
+  };
+
+  const validationError = validateCampaign(updatedCampaign);
+
+  if (validationError) {
+    return response.status(400).json({
+      success: false,
+      message: validationError
+    });
+  }
+
+  campaigns[campaignIndex] = updatedCampaign;
+
+  response.status(200).json({
+    success: true,
+    data: updatedCampaign
+  });
+});
+
+app.delete("/api/campaigns/:id", (request, response) => {
+  const campaignIndex = campaigns.findIndex(
+    (item) => item.id === request.params.id
+  );
+
+  if (campaignIndex === -1) {
+    return response.status(404).json({
+      success: false,
+      message: "Campaign not found"
+    });
+  }
+
+  const deletedCampaign = campaigns.splice(campaignIndex, 1)[0];
+
+  response.status(200).json({
+    success: true,
+    message: "Campaign deleted successfully",
+    data: deletedCampaign
+  });
+});
 app.use((request, response) => {
   response.status(404).json({
     success: false,
