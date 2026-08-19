@@ -1,92 +1,132 @@
+html
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Divinenet CRM - Draft Lead UI</title>
-  <link rel="stylesheet" href="style.css">
+
+  <title>Divinenet CRM - Draft Lead Management</title>
+
+  <link rel="stylesheet" href="lead-style.css">
 </head>
+
 <body>
-  <header>
+  <header class="page-header">
     <h1>Divinenet AI Marketing CRM</h1>
-    <p>Phase 2 - Draft Lead Management UI</p>
+    <p>Phase 2 - Draft Lead Management</p>
   </header>
 
-  <nav>
-    <a href="index.html"><button type="button">Campaign Prototype</button></a>
+  <nav class="main-navigation">
+    <a class="navigation-button" href="index.html">
+      Campaign Prototype
+    </a>
   </nav>
 
-  <main>
-    <section class="details-box">
+  <main class="container">
+    <p id="connectionStatus" class="status status-warning">
+      Checking campaign backend connection...
+    </p>
+
+    <section class="panel">
       <h2>Draft Lead Capture</h2>
-      <p><strong>Prototype notice:</strong> Fictional data only. Lead fields and workflow remain pending client confirmation.</p>
+
+      <p class="prototype-notice">
+        Fictional data only. Lead fields, stages, qualification and
+        conversion rules remain provisional until confirmed by the client.
+      </p>
 
       <form id="leadForm">
-        <label for="campaignId">Related Campaign *</label>
-        <select id="campaignId" required>
-          <option value="">Select campaign</option>
-          <option value="CAM-001">Spring Awareness Demo</option>
-        </select>
+        <div class="form-grid">
+          <div class="form-field full-width">
+            <label for="campaignId">Related Campaign *</label>
 
-        <label for="firstName">First Name *</label>
-        <input id="firstName" type="text" value="Alex">
+            <select id="campaignId" required>
+              <option value="">Select campaign</option>
+            </select>
+          </div>
 
-        <label for="lastName">Last Name *</label>
-        <input id="lastName" type="text" value="Demo">
+          <div class="form-field">
+            <label for="firstName">First Name *</label>
+            <input id="firstName" type="text" required>
+          </div>
 
-        <label for="email">Email *</label>
-        <input id="email" type="email" value="alex.demo@example.com">
+          <div class="form-field">
+            <label for="lastName">Last Name *</label>
+            <input id="lastName" type="text" required>
+          </div>
 
-        <label for="phone">Phone</label>
-        <input id="phone" type="tel" value="0400 000 000">
+          <div class="form-field">
+            <label for="email">Email *</label>
 
-        <label for="sourcePlatform">Source Platform *</label>
-        <select id="sourcePlatform" required>
-          <option>Facebook</option>
-          <option>Instagram</option>
-        </select>
+            <input
+              id="email"
+              type="email"
+              placeholder="sample@example.invalid"
+              required
+            >
+          </div>
 
-        <label for="consentStatus">Consent Status *</label>
-        <select id="consentStatus" required>
-          <option>Recorded</option>
-          <option>Unknown</option>
-        </select>
+          <div class="form-field">
+            <label for="phone">Phone</label>
+            <input id="phone" type="tel">
+          </div>
 
-        <label for="leadStatus">Lead Status *</label>
-        <select id="leadStatus" required>
-          <option>New</option>
-          <option>Contacted</option>
-          <option>Qualified</option>
-          <option>Converted</option>
-          <option>Not Proceeding</option>
-        </select>
+          <div class="form-field">
+            <label for="sourcePlatform">Source Platform *</label>
 
-        <p id="leadMessage"></p>
-        <button type="submit">Save Draft Lead</button>
-        <button type="reset">Clear</button>
+            <select id="sourcePlatform" required>
+              <option value="">Select source</option>
+              <option value="Facebook">Facebook</option>
+              <option value="Instagram">Instagram</option>
+            </select>
+          </div>
+
+          <div class="form-field">
+            <label for="consentStatus">Consent Status *</label>
+
+            <select id="consentStatus" required>
+              <option value="">Select consent status</option>
+              <option value="Recorded">Recorded</option>
+              <option value="Not Recorded">Not Recorded</option>
+              <option value="Unknown">Unknown</option>
+            </select>
+          </div>
+
+          <div class="form-field full-width">
+            <label for="leadStatus">Provisional Lead Status *</label>
+
+            <select id="leadStatus" required>
+              <option value="">Select status</option>
+              <option value="New">New</option>
+              <option value="Contacted">Contacted</option>
+              <option value="Qualified">Qualified</option>
+              <option value="Converted">Converted</option>
+              <option value="Not Proceeding">Not Proceeding</option>
+            </select>
+          </div>
+        </div>
+
+        <p id="leadMessage" class="form-message" aria-live="polite"></p>
+
+        <div class="form-actions">
+          <button type="submit">Save Draft Lead</button>
+          <button type="reset" class="secondary-button">Clear</button>
+        </div>
       </form>
     </section>
 
-    <section>
+    <section class="panel">
       <h2>Draft Lead List</h2>
-      <div class="campaign-card">
-        <h3>LEAD-001 - Alex Demo</h3>
-        <p><strong>Campaign:</strong> Spring Awareness Demo</p>
-        <p><strong>Source:</strong> Facebook</p>
-        <p><strong>Consent:</strong> Recorded</p>
-        <p><strong>Status:</strong> New</p>
-        <button type="button">View</button>
-        <button type="button">Edit</button>
-      </div>
+
+      <p>
+        These records are stored only in this browser for prototype testing.
+      </p>
+
+      <div id="leadList"></div>
     </section>
   </main>
 
-  <script>
-    document.getElementById("leadForm").addEventListener("submit", function (event) {
-      event.preventDefault();
-      document.getElementById("leadMessage").textContent =
-        "Draft UI only - saving and backend connection will be added after review.";
-    });
-  </script>
+  <script src="lead-prototype.js"></script>
 </body>
 </html>
+
