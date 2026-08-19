@@ -1,0 +1,132 @@
+html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>Divinenet CRM - Draft Lead Management</title>
+
+  <link rel="stylesheet" href="lead-style.css">
+</head>
+
+<body>
+  <header class="page-header">
+    <h1>Divinenet AI Marketing CRM</h1>
+    <p>Phase 2 - Draft Lead Management</p>
+  </header>
+
+  <nav class="main-navigation">
+    <a class="navigation-button" href="index.html">
+      Campaign Prototype
+    </a>
+  </nav>
+
+  <main class="container">
+    <p id="connectionStatus" class="status status-warning">
+      Checking campaign backend connection...
+    </p>
+
+    <section class="panel">
+      <h2>Draft Lead Capture</h2>
+
+      <p class="prototype-notice">
+        Fictional data only. Lead fields, stages, qualification and
+        conversion rules remain provisional until confirmed by the client.
+      </p>
+
+      <form id="leadForm">
+        <div class="form-grid">
+          <div class="form-field full-width">
+            <label for="campaignId">Related Campaign *</label>
+
+            <select id="campaignId" required>
+              <option value="">Select campaign</option>
+            </select>
+          </div>
+
+          <div class="form-field">
+            <label for="firstName">First Name *</label>
+            <input id="firstName" type="text" required>
+          </div>
+
+          <div class="form-field">
+            <label for="lastName">Last Name *</label>
+            <input id="lastName" type="text" required>
+          </div>
+
+          <div class="form-field">
+            <label for="email">Email *</label>
+
+            <input
+              id="email"
+              type="email"
+              placeholder="sample@example.invalid"
+              required
+            >
+          </div>
+
+          <div class="form-field">
+            <label for="phone">Phone</label>
+            <input id="phone" type="tel">
+          </div>
+
+          <div class="form-field">
+            <label for="sourcePlatform">Source Platform *</label>
+
+            <select id="sourcePlatform" required>
+              <option value="">Select source</option>
+              <option value="Facebook">Facebook</option>
+              <option value="Instagram">Instagram</option>
+            </select>
+          </div>
+
+          <div class="form-field">
+            <label for="consentStatus">Consent Status *</label>
+
+            <select id="consentStatus" required>
+              <option value="">Select consent status</option>
+              <option value="Recorded">Recorded</option>
+              <option value="Not Recorded">Not Recorded</option>
+              <option value="Unknown">Unknown</option>
+            </select>
+          </div>
+
+          <div class="form-field full-width">
+            <label for="leadStatus">Provisional Lead Status *</label>
+
+            <select id="leadStatus" required>
+              <option value="">Select status</option>
+              <option value="New">New</option>
+              <option value="Contacted">Contacted</option>
+              <option value="Qualified">Qualified</option>
+              <option value="Converted">Converted</option>
+              <option value="Not Proceeding">Not Proceeding</option>
+            </select>
+          </div>
+        </div>
+
+        <p id="leadMessage" class="form-message" aria-live="polite"></p>
+
+        <div class="form-actions">
+          <button type="submit">Save Draft Lead</button>
+          <button type="reset" class="secondary-button">Clear</button>
+        </div>
+      </form>
+    </section>
+
+    <section class="panel">
+      <h2>Draft Lead List</h2>
+
+      <p>
+        These records are stored only in this browser for prototype testing.
+      </p>
+
+      <div id="leadList"></div>
+    </section>
+  </main>
+
+  <script src="lead-prototype.js"></script>
+</body>
+</html>
+
