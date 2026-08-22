@@ -1,49 +1,65 @@
 const campaignModel = {
-  id: "string",
-  campaignName: "string",
-  client: "string",
-  brand: "string",
-  objective: "string",
-  targetAudience: "string",
-  startDate: "date",
-  endDate: "date",
-  budget: "number",
-  channel: "Facebook or Instagram",
-  status: "Draft, Active, Paused or Completed",
-  createdAt: "date-time",
-  updatedAt: "date-time"
+  id: "",
+  campaignName: "",
+  client: "",
+  brand: "",
+  prompt: "",
+  objective: "",
+  targetAudience: "",
+  startDate: "",
+  endDate: "",
+  budget: 0,
+  channel: "",
+  status: "Draft"
 };
+
+const campaignChannels = [
+  "Facebook",
+  "Instagram",
+  "LinkedIn"
+];
 
 const leadModel = {
-  id: "string",
-  campaignId: "string",
-  firstName: "string",
-  lastName: "string",
-  email: "string",
-  phone: "string or empty",
-  sourcePlatform: "Facebook or Instagram",
-  consentStatus: "Recorded, Not Recorded or Unknown",
-  leadStatus: "provisional workflow value",
-  createdAt: "date-time",
-  updatedAt: "date-time"
+  id: "",
+  name: "",
+  email: "",
+  phone: null,
+  campaignId: "",
+  sourcePlatform: "",
+  consentStatus: "",
+  queueStatus: "Pending",
+  createdAt: new Date().toISOString(),
+  retrievedAt: null
 };
 
-const kpiResultModel = {
-  id: "string",
-  campaignId: "string",
-  reach: "number",
-  impressions: "number",
-  clicks: "number",
-  leads: "number",
-  qualifiedLeads: "number",
-  conversions: "number",
-  reportingPeriodStart: "date",
-  reportingPeriodEnd: "date",
-  dataStatus: "Test or Confirmed"
+const leadRequiredFields = [
+  "name",
+  "email",
+  "campaignId",
+  "sourcePlatform",
+  "consentStatus"
+];
+
+const leadQueueStatuses = [
+  "Pending",
+  "Retrieved"
+];
+
+const kpiModel = {
+  id: "",
+  campaignId: "",
+  platform: "",
+  impressions: 0,
+  clicks: 0,
+  leads: 0,
+  spend: 0
 };
 
 module.exports = {
   campaignModel,
+  campaignChannels,
   leadModel,
-  kpiResultModel
+  leadRequiredFields,
+  leadQueueStatuses,
+  kpiModel
 };
