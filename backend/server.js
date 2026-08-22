@@ -11,10 +11,11 @@ const campaigns = [
   {
     id: "CAM-001",
     campaignName: "Spring Awareness Demo",
-    client: "Fictional Client",
+    client: "Testing Client",
     brand: "Divinenet Demo",
-    objective: "Increase fictional brand awareness",
-    targetAudience: "Fictional small-business owners",
+    prompt: "Create a simple awareness campaign for testing",
+    objective: "Test campaign awareness",
+    targetAudience: "Testing audience",
     startDate: "2026-08-15",
     endDate: "2026-08-31",
     budget: 1000,
@@ -22,12 +23,15 @@ const campaigns = [
     status: "Draft"
   }
 ];
+
 let nextCampaignNumber = campaigns.length + 1;
+
 function validateCampaign(campaign) {
   const requiredFields = [
     "campaignName",
     "client",
     "brand",
+    "prompt",
     "objective",
     "targetAudience",
     "startDate",
@@ -55,12 +59,14 @@ function validateCampaign(campaign) {
     return "Budget must be zero or greater";
   }
 
-  const allowedChannels = ["Facebook", "Instagram"];
+  const allowedChannels = ["Facebook", "Instagram", "LinkedIn"];
+
   if (!allowedChannels.includes(campaign.channel)) {
-    return "Channel must be Facebook or Instagram";
+    return "Channel must be Facebook, Instagram or LinkedIn";
   }
 
   const allowedStatuses = ["Draft", "Active", "Paused", "Completed"];
+
   if (!allowedStatuses.includes(campaign.status)) {
     return "Status must be Draft, Active, Paused or Completed";
   }
@@ -115,6 +121,7 @@ app.post("/api/campaigns", (request, response) => {
     campaignName: request.body.campaignName,
     client: request.body.client,
     brand: request.body.brand,
+    prompt: request.body.prompt,
     objective: request.body.objective,
     targetAudience: request.body.targetAudience,
     startDate: request.body.startDate,
@@ -150,19 +157,28 @@ app.put("/api/campaigns/:id", (request, response) => {
     id: currentCampaign.id,
     campaignName:
       request.body.campaignName ?? currentCampaign.campaignName,
-    client: request.body.client ?? currentCampaign.client,
-    brand: request.body.brand ?? currentCampaign.brand,
-    objective: request.body.objective ?? currentCampaign.objective,
+    client:
+      request.body.client ?? currentCampaign.client,
+    brand:
+      request.body.brand ?? currentCampaign.brand,
+    prompt:
+      request.body.prompt ?? currentCampaign.prompt,
+    objective:
+      request.body.objective ?? currentCampaign.objective,
     targetAudience:
       request.body.targetAudience ?? currentCampaign.targetAudience,
-    startDate: request.body.startDate ?? currentCampaign.startDate,
-    endDate: request.body.endDate ?? currentCampaign.endDate,
+    startDate:
+      request.body.startDate ?? currentCampaign.startDate,
+    endDate:
+      request.body.endDate ?? currentCampaign.endDate,
     budget:
       request.body.budget !== undefined
         ? Number(request.body.budget)
         : currentCampaign.budget,
-    channel: request.body.channel ?? currentCampaign.channel,
-    status: request.body.status ?? currentCampaign.status
+    channel:
+      request.body.channel ?? currentCampaign.channel,
+    status:
+      request.body.status ?? currentCampaign.status
   };
 
   const validationError = validateCampaign(updatedCampaign);
@@ -202,6 +218,7 @@ app.delete("/api/campaigns/:id", (request, response) => {
     data: deletedCampaign
   });
 });
+
 app.use((request, response) => {
   response.status(404).json({
     success: false,
