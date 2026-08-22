@@ -1,24 +1,23 @@
 # Campaign Management Backend API Plan
 
 Jira: DCRM2-5  
-Status: Draft  
-Data: Fictional test data only
+Status: Implemented for Sprint 2 prototype  
+Data: Testing data only
 
-## Proposed technology
+## Technology
 
-- Node.js
+- Node.js 24 LTS
 - Express
-- Initial mock/in-memory data
+- In-memory testing data
 - Database connection will be completed separately under DCRM2-13
 
-The technology proposal requires technical review before final approval.
-
-## Campaign fields
+## Campaign Fields
 
 - id
 - campaignName
 - client
 - brand
+- prompt
 - objective
 - targetAudience
 - startDate
@@ -27,19 +26,20 @@ The technology proposal requires technical review before final approval.
 - channel
 - status
 
-## Allowed channels
+## Supported Channels
 
 - Facebook
 - Instagram
+- LinkedIn
 
-## Allowed statuses
+## Allowed Statuses
 
 - Draft
 - Active
 - Paused
 - Completed
 
-## Planned API endpoints
+## Implemented API Endpoints
 
 ### GET /api/health
 
@@ -47,10 +47,12 @@ Purpose: Confirm that the backend is running.
 
 Successful response:
 
+```json
 {
   "success": true,
   "message": "Divinenet CRM API is running"
 }
+```
 
 ### GET /api/campaigns
 
@@ -58,81 +60,113 @@ Purpose: Return all campaigns.
 
 ### GET /api/campaigns/:id
 
-Purpose: Return one campaign using its ID.
+Purpose: Return a campaign using its campaign ID.
+
+If the campaign does not exist:
+
+```json
+{
+  "success": false,
+  "message": "Campaign not found"
+}
+```
 
 ### POST /api/campaigns
 
-Purpose: Create a campaign.
+Purpose: Create a new campaign.
+
+Required fields:
+
+- campaignName
+- client
+- brand
+- prompt
+- objective
+- targetAudience
+- startDate
+- endDate
+- budget
+- channel
+- status
 
 ### PUT /api/campaigns/:id
 
 Purpose: Update an existing campaign.
 
+The endpoint supports partial updates while keeping the existing values for fields that are not provided.
+
 ### DELETE /api/campaigns/:id
 
-Purpose: Delete a campaign.
+Purpose: Delete an existing campaign.
 
-## Validation rules
+Successful response:
+
+```json
+{
+  "success": true,
+  "message": "Campaign deleted successfully",
+  "data": {}
+}
+```
+
+## Validation Rules
 
 - Campaign name is required.
 - Client is required.
 - Brand is required.
+- Prompt is required.
 - Objective is required.
 - Target audience is required.
 - Start date is required.
 - End date is required.
 - End date cannot be before the start date.
 - Budget must be zero or greater.
-- Channel must be Facebook or Instagram.
+- Channel must be Facebook, Instagram or LinkedIn.
 - Status must be Draft, Active, Paused or Completed.
-- Real customer information must not be used.
+- Testing data only must be used.
+- No real customer information, passwords or API keys should be included.
 
-## Response format
+## Response Format
 
 Successful response:
 
+```json
 {
   "success": true,
   "data": {}
 }
+```
 
 Error response:
 
+```json
 {
   "success": false,
   "message": "Clear error explanation"
 }
+```
 
-## Expected result
+## Implementation Status
 
-The frontend will send JSON requests to the backend. The backend will validate the request and return a JSON response.
-
-## Excluded from this Jira task
-
-- Database implementation
-- Claude integration
-- Meta integration
-- Phase 1 integration
-- Lead scoring
-- Conversion logic
-
-  ## Implementation status - 15 August 2026
-
-Implemented and locally checked:
+Completed:
 
 - GET /api/health
 - GET /api/campaigns
 - GET /api/campaigns/:id
-- POST /api/campaigns with validation
-- JSON response for unknown routes
-
-Pending:
-
+- POST /api/campaigns
 - PUT /api/campaigns/:id
 - DELETE /api/campaigns/:id
-- Database connection under DCRM2-13
-- Frontend API connection
+- Campaign validation
+- Campaign prompt support
+- Facebook support
+- Instagram support
+- LinkedIn support
+- Unknown route handling
 
+## Current Limitations
 
-
-
+- Campaign records are currently stored in memory.
+- Campaign data resets when the backend server restarts.
+- Permanent database persistence is handled separately under DCRM2-13.
+- Frontend-to-backend integration is not part of the current DCRM2-5 implementation.
+- Live external API access is not currently enabled.
