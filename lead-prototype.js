@@ -1,5 +1,5 @@
 const API_BASE_URL = "http://localhost:3000/api";
-const STORAGE_KEY = "divinenetTestingLeads";
+const STORAGE_KEY = "divinenetTestingLeadQueue";
 
 const fallbackCampaigns = [
   {
@@ -42,6 +42,7 @@ function populateCampaigns(campaigns) {
     const option = document.createElement("option");
 
     option.value = campaign.id;
+
     option.textContent =
       `${campaign.id} - ${campaign.campaignName}`;
 
@@ -77,10 +78,11 @@ async function loadCampaigns() {
     );
 
   } catch (error) {
+
     populateCampaigns(fallbackCampaigns);
 
     setConnectionStatus(
-      "Testing mode: the backend is unavailable, so a local testing campaign is being used.",
+      "Testing mode: the backend is unavailable, so a testing campaign is being used.",
       "status-warning"
     );
   }
@@ -151,8 +153,8 @@ function renderLeads() {
       </p>
 
       <p>
-        <strong>Queue status:</strong>
-        ${escapeHtml(lead.queueStatus)}
+        <strong>Status:</strong>
+        ${escapeHtml(lead.status)}
       </p>
 
       <p>
@@ -180,6 +182,7 @@ function deleteTestingLead(leadId) {
   );
 
   saveStoredLeads(remainingLeads);
+
   renderLeads();
 
   leadMessage.textContent =
@@ -190,6 +193,7 @@ leadForm.addEventListener("submit", (event) => {
   event.preventDefault();
 
   if (!leadForm.checkValidity()) {
+
     leadForm.reportValidity();
 
     leadMessage.textContent =
@@ -225,7 +229,7 @@ leadForm.addEventListener("submit", (event) => {
     consentStatus:
       document.getElementById("consentStatus").value,
 
-    queueStatus: "Pending",
+    status: "Pending",
 
     dataStatus: "Testing",
 
@@ -243,7 +247,7 @@ leadForm.addEventListener("submit", (event) => {
   leadForm.reset();
 
   leadMessage.textContent =
-    "Testing lead added to the Phase 2 queue.";
+    "Testing lead added to the pending queue in this browser.";
 });
 
 leadForm.addEventListener("reset", () => {
