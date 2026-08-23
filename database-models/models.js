@@ -1,29 +1,23 @@
 const campaignModel = {
   id: "",
   campaignName: "",
-  client: "",
-  brand: "",
   prompt: "",
-  objective: "",
-  targetAudience: "",
   startDate: "",
   endDate: "",
-  budget: 0,
   channel: "",
-  status: "Draft"
+  status: "Draft",
+  client: "",
+  brand: "",
+  objective: "",
+  targetAudience: "",
+  budget: null
 };
-
-const campaignChannels = [
-  "Facebook",
-  "Instagram",
-  "LinkedIn"
-];
 
 const leadModel = {
   id: "",
   name: "",
   email: "",
-  phone: null,
+  phone: "",
   campaignId: "",
   sourcePlatform: "",
   consentStatus: "",
@@ -32,12 +26,19 @@ const leadModel = {
   retrievedAt: null
 };
 
-const leadRequiredFields = [
-  "name",
-  "email",
-  "campaignId",
-  "sourcePlatform",
-  "consentStatus"
+const kpiModel = {
+  id: "",
+  campaignId: "",
+  platform: "",
+  impressions: 0,
+  clicks: 0,
+  conversions: 0
+};
+
+const platformOptions = [
+  "Facebook",
+  "Instagram",
+  "LinkedIn"
 ];
 
 const leadQueueStatuses = [
@@ -45,21 +46,10 @@ const leadQueueStatuses = [
   "Retrieved"
 ];
 
-const kpiModel = {
-  id: "",
-  campaignId: "",
-  platform: "",
-  impressions: 0,
-  clicks: 0,
-  leads: 0,
-  spend: 0
-};
-
 module.exports = {
   campaignModel,
-  campaignChannels,
   leadModel,
-  leadRequiredFields,
-  leadQueueStatuses,
-  kpiModel
+  kpiModel,
+  platformOptions,
+  leadQueueStatuses
 };
