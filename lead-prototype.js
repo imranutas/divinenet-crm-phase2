@@ -1,10 +1,10 @@
 const API_BASE_URL = "http://localhost:3000/api";
-const STORAGE_KEY = "divinenetDraftLeads";
+const STORAGE_KEY = "divinenetTestingLeads";
 
 const fallbackCampaigns = [
   {
     id: "CAM-001",
-    campaignName: "Spring Awareness Demo"
+    campaignName: "Testing Campaign"
   }
 ];
 
@@ -75,11 +75,12 @@ async function loadCampaigns() {
       "Connected to the campaign backend API.",
       "status-success"
     );
+
   } catch (error) {
     populateCampaigns(fallbackCampaigns);
 
     setConnectionStatus(
-      "Mock mode: the backend is unavailable, so a fictional fallback campaign is being used.",
+      "Testing mode: the backend is unavailable, so a local testing campaign is being used.",
       "status-warning"
     );
   }
@@ -111,17 +112,17 @@ function renderLeads() {
 
   if (leads.length === 0) {
     leadList.innerHTML =
-      '<p class="empty-message">No draft leads have been saved.</p>';
+      '<p class="empty-message">No testing leads are currently in the queue.</p>';
 
     return;
   }
 
   leadList.innerHTML = leads.map((lead) => `
     <article class="lead-card">
+
       <h3>
         ${escapeHtml(lead.id)} -
-        ${escapeHtml(lead.firstName)}
-        ${escapeHtml(lead.lastName)}
+        ${escapeHtml(lead.name)}
       </h3>
 
       <p>
@@ -135,6 +136,11 @@ function renderLeads() {
       </p>
 
       <p>
+        <strong>Phone:</strong>
+        ${escapeHtml(lead.phone || "Not provided")}
+      </p>
+
+      <p>
         <strong>Source:</strong>
         ${escapeHtml(lead.sourcePlatform)}
       </p>
@@ -145,27 +151,28 @@ function renderLeads() {
       </p>
 
       <p>
-        <strong>Status:</strong>
-        ${escapeHtml(lead.leadStatus)}
+        <strong>Queue status:</strong>
+        ${escapeHtml(lead.queueStatus)}
       </p>
 
       <p>
         <strong>Data status:</strong>
-        Fictional draft
+        ${escapeHtml(lead.dataStatus)}
       </p>
 
       <button
         type="button"
         class="delete-button"
-        onclick="deleteDraftLead('${escapeHtml(lead.id)}')"
+        onclick="deleteTestingLead('${escapeHtml(lead.id)}')"
       >
-        Delete Draft
+        Delete Lead
       </button>
+
     </article>
   `).join("");
 }
 
-function deleteDraftLead(leadId) {
+function deleteTestingLead(leadId) {
   const leads = getStoredLeads();
 
   const remainingLeads = leads.filter(
@@ -176,7 +183,7 @@ function deleteDraftLead(leadId) {
   renderLeads();
 
   leadMessage.textContent =
-    "Draft lead removed from this browser.";
+    "Testing lead removed from the queue.";
 }
 
 leadForm.addEventListener("submit", (event) => {
@@ -186,7 +193,7 @@ leadForm.addEventListener("submit", (event) => {
     leadForm.reportValidity();
 
     leadMessage.textContent =
-      "Complete all required fields before saving.";
+      "Complete all required fields before adding the lead.";
 
     return;
   }
@@ -198,43 +205,52 @@ leadForm.addEventListener("submit", (event) => {
 
   const lead = {
     id: `LEAD-${Date.now()}`,
+
     campaignId: campaignSelect.value,
+
     campaignName: selectedCampaignText,
-    firstName:
-      document.getElementById("firstName").value.trim(),
-    lastName:
-      document.getElementById("lastName").value.trim(),
+
+    name:
+      document.getElementById("name").value.trim(),
+
     email:
       document.getElementById("email").value.trim(),
+
     phone:
       document.getElementById("phone").value.trim(),
+
     sourcePlatform:
       document.getElementById("sourcePlatform").value,
+
     consentStatus:
       document.getElementById("consentStatus").value,
-    leadStatus:
-      document.getElementById("leadStatus").value,
-    dataStatus: "Mock",
+
+    queueStatus: "Pending",
+
+    dataStatus: "Testing",
+
     createdAt: new Date().toISOString()
   };
 
   const leads = getStoredLeads();
 
   leads.unshift(lead);
+
   saveStoredLeads(leads);
 
   renderLeads();
+
   leadForm.reset();
 
   leadMessage.textContent =
-    "Fictional draft lead saved in this browser.";
+    "Testing lead added to the Phase 2 queue.";
 });
 
 leadForm.addEventListener("reset", () => {
   leadMessage.textContent = "";
 });
 
-window.deleteDraftLead = deleteDraftLead;
+window.deleteTestingLead = deleteTestingLead;
 
 loadCampaigns();
 renderLeads();
