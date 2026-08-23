@@ -22,30 +22,32 @@
   </nav>
 
   <main class="container">
+
     <p id="connectionStatus" class="status status-warning">
       Checking campaign backend connection...
     </p>
 
     <section class="panel">
+
       <h2>Lead Capture</h2>
 
       <p class="prototype-notice">
-        Testing data only. Valid leads are placed in the Phase 2 queue
-        for Phase 1 retrieval.
+        Testing data only. This simple form records a lead for the Phase 1 lead queue.
       </p>
 
       <form id="leadForm">
+
         <div class="form-grid">
 
           <div class="form-field full-width">
-            <label for="campaignId">Related Campaign *</label>
+            <label for="campaignId">Campaign *</label>
 
             <select id="campaignId" required>
               <option value="">Select campaign</option>
             </select>
           </div>
 
-          <div class="form-field full-width">
+          <div class="form-field">
             <label for="name">Name *</label>
             <input id="name" type="text" required>
           </div>
@@ -56,7 +58,7 @@
             <input
               id="email"
               type="email"
-              placeholder="sample@example.invalid"
+              placeholder="test@example.com"
               required
             >
           </div>
@@ -70,7 +72,7 @@
             <label for="sourcePlatform">Source Platform *</label>
 
             <select id="sourcePlatform" required>
-              <option value="">Select source</option>
+              <option value="">Select a platform</option>
               <option value="Facebook">Facebook</option>
               <option value="Instagram">Instagram</option>
               <option value="LinkedIn">LinkedIn</option>
@@ -93,21 +95,26 @@
         <p id="leadMessage" class="form-message" aria-live="polite"></p>
 
         <div class="form-actions">
-          <button type="submit">Add Lead to Queue</button>
+          <button type="submit">Add to Lead Queue</button>
           <button type="reset" class="secondary-button">Clear</button>
         </div>
+
       </form>
     </section>
 
     <section class="panel">
+
       <h2>Lead Queue</h2>
 
       <p>
-        These testing records are stored in this browser for prototype testing.
+        These testing records are stored only in this browser
+        until the lead queue API is available.
       </p>
 
       <div id="leadList"></div>
+
     </section>
+
   </main>
 
   <script src="lead-prototype.js"></script>
