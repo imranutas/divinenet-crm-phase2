@@ -2,16 +2,41 @@
 
 ## Overview
 
-This backend supports the campaign management functions for the Divinenet CRM Sprint 2 prototype. It is built using Node.js and Express.
+The campaign management backend is built using Node.js and Express for the Divinenet CRM Sprint 2 prototype.
 
-Campaign data is currently stored in memory using test data. The data resets when the server is restarted.
+Campaign data is currently stored temporarily in memory and resets whenever the server restarts.
 
 ## Setup
 
 1. Open the backend folder.
 2. Run `npm install`.
-3. Run `npm start`.
-4. The server will run on port 3000.
+3. Run `node server.js`.
+4. The API runs on port 3000.
+
+## Required Campaign Fields
+
+- campaignName
+- prompt
+- startDate
+- endDate
+- channel
+
+## Optional Campaign Fields
+
+- client
+- brand
+- objective
+- targetAudience
+- budget
+- status
+
+If status is not provided, the backend automatically uses Draft.
+
+## Supported Platforms
+
+- Facebook
+- Instagram
+- LinkedIn
 
 ## API Endpoints
 
@@ -22,35 +47,14 @@ Campaign data is currently stored in memory using test data. The data resets whe
 - PUT `/api/campaigns/:id`
 - DELETE `/api/campaigns/:id`
 
-## Campaign Fields
+## Data and Security
 
-A campaign contains:
-
-- Campaign name
-- Client
-- Brand
-- Objective
-- Target audience
-- Start date
-- End date
-- Budget
-- Channel
-- Status
-
-The current supported channels are Facebook and Instagram.
-
-## Validation
-
-The backend checks required campaign fields, campaign dates, budget, channel and campaign status before accepting campaign data.
-
-## Security
-
-- Test data is used for development
-- No real customer information is stored
-- No passwords or API keys are included
-- `.env` files are ignored
-- `node_modules` is ignored
+- Testing data is used during Sprint 2.
+- No real customer information is stored.
+- No passwords or API keys are stored in GitHub.
+- `.env` files are ignored.
+- `node_modules` is ignored.
 
 ## Current Limitation
 
-Campaign data is stored in memory and is not permanently saved. Database support will be handled separately as part of DCRM2-13.
+Campaign data is stored in memory and is not permanently saved. Database persistence will be handled separately under DCRM2-13.
