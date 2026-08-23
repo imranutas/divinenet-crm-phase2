@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <title>Divinenet CRM - Draft Lead Management</title>
+  <title>Divinenet CRM - Lead Queue</title>
 
   <link rel="stylesheet" href="lead-style.css">
 </head>
@@ -12,7 +12,7 @@
 <body>
   <header class="page-header">
     <h1>Divinenet AI Marketing CRM</h1>
-    <p>Phase 2 - Draft Lead Management</p>
+    <p>Phase 2 - Lead Queue</p>
   </header>
 
   <nav class="main-navigation">
@@ -27,15 +27,16 @@
     </p>
 
     <section class="panel">
-      <h2>Draft Lead Capture</h2>
+      <h2>Lead Capture</h2>
 
       <p class="prototype-notice">
-        Fictional data only. Lead fields, stages, qualification and
-        conversion rules remain provisional until confirmed by the client.
+        Testing data only. Valid leads are placed in the Phase 2 queue
+        for Phase 1 retrieval.
       </p>
 
       <form id="leadForm">
         <div class="form-grid">
+
           <div class="form-field full-width">
             <label for="campaignId">Related Campaign *</label>
 
@@ -44,14 +45,9 @@
             </select>
           </div>
 
-          <div class="form-field">
-            <label for="firstName">First Name *</label>
-            <input id="firstName" type="text" required>
-          </div>
-
-          <div class="form-field">
-            <label for="lastName">Last Name *</label>
-            <input id="lastName" type="text" required>
+          <div class="form-field full-width">
+            <label for="name">Name *</label>
+            <input id="name" type="text" required>
           </div>
 
           <div class="form-field">
@@ -77,6 +73,7 @@
               <option value="">Select source</option>
               <option value="Facebook">Facebook</option>
               <option value="Instagram">Instagram</option>
+              <option value="LinkedIn">LinkedIn</option>
             </select>
           </div>
 
@@ -91,34 +88,22 @@
             </select>
           </div>
 
-          <div class="form-field full-width">
-            <label for="leadStatus">Provisional Lead Status *</label>
-
-            <select id="leadStatus" required>
-              <option value="">Select status</option>
-              <option value="New">New</option>
-              <option value="Contacted">Contacted</option>
-              <option value="Qualified">Qualified</option>
-              <option value="Converted">Converted</option>
-              <option value="Not Proceeding">Not Proceeding</option>
-            </select>
-          </div>
         </div>
 
         <p id="leadMessage" class="form-message" aria-live="polite"></p>
 
         <div class="form-actions">
-          <button type="submit">Save Draft Lead</button>
+          <button type="submit">Add Lead to Queue</button>
           <button type="reset" class="secondary-button">Clear</button>
         </div>
       </form>
     </section>
 
     <section class="panel">
-      <h2>Draft Lead List</h2>
+      <h2>Lead Queue</h2>
 
       <p>
-        These records are stored only in this browser for prototype testing.
+        These testing records are stored in this browser for prototype testing.
       </p>
 
       <div id="leadList"></div>
