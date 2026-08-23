@@ -1,10 +1,4 @@
 const {
-  campaignModel,
-  leadModel,
-  kpiModel
-} = require("../database-models/models");
-
-const {
   generateCampaignContent
 } = require("./claude-mock");
 
@@ -17,25 +11,12 @@ const {
 } = require("./linkedin-mock");
 
 const {
-  getPhase1Customers,
-  getPhase1Staff,
-  retrievePendingLeads
+  retrievePendingLead
 } = require("./phase1-mock");
 
-const {
-  getLiveIntegrationStatus
-} = require("./live-adapter");
-
-console.log("DATABASE MODEL DEFINITIONS");
-console.log({
-  campaignModel,
-  leadModel,
-  kpiModel
-});
-
-console.log("\nAI TEST");
+console.log("AI TEST");
 console.log(
-  generateCampaignContent("LinkedIn Testing Campaign")
+  generateCampaignContent("August Testing Campaign")
 );
 
 console.log("\nFACEBOOK TEST");
@@ -61,14 +42,7 @@ console.log(
   )
 );
 
-console.log("\nPHASE 1 CUSTOMER TEST");
-console.log(getPhase1Customers());
-
-console.log("\nPHASE 1 STAFF TEST");
-console.log(getPhase1Staff());
-
-console.log("\nPHASE 1 PENDING LEAD RETRIEVAL TEST");
-console.log(retrievePendingLeads());
-
-console.log("\nLIVE INTEGRATION STATUS");
-console.log(getLiveIntegrationStatus());
+console.log("\nPHASE 1 LEAD RETRIEVAL TEST");
+console.log(
+  retrievePendingLead()
+);
