@@ -22,27 +22,33 @@ function getPhase1Staff() {
   };
 }
 
-function retrievePendingLeads() {
-  const pendingLeads = testLeads.filter(
+function retrievePendingLead() {
+  const pendingLead = testLeads.find(
     (lead) => lead.queueStatus === "Pending"
   );
 
-  const retrievedLeads = pendingLeads.map((lead) => {
-    lead.queueStatus = "Retrieved";
-    lead.retrievedAt = new Date().toISOString();
-    return lead;
-  });
+  if (!pendingLead) {
+    return {
+      testMode: true,
+      success: false,
+      message: "No pending leads available"
+    };
+  }
+
+  pendingLead.queueStatus = "Retrieved";
+  pendingLead.retrievedAt = new Date().toISOString();
 
   return {
     testMode: true,
+    success: true,
     source: "Phase 1 CRM",
     liveAccessUsed: false,
-    data: retrievedLeads
+    data: pendingLead
   };
 }
 
 module.exports = {
   getPhase1Customers,
   getPhase1Staff,
-  retrievePendingLeads
+  retrievePendingLead
 };
