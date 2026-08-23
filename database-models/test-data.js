@@ -20,38 +20,32 @@ const testLeads = [
   {
     id: "LEAD-001",
     name: "Facebook Testing Lead",
-    email: "facebook.testing@example.com",
-    phone: null,
+    email: "facebook.testing@example.invalid",
+    phone: "",
     campaignId: "CAM-001",
     sourcePlatform: "Facebook",
     consentStatus: "Recorded",
-    queueStatus: "Pending",
-    createdAt: new Date().toISOString(),
-    retrievedAt: null
+    queueStatus: "Pending"
   },
   {
     id: "LEAD-002",
     name: "Instagram Testing Lead",
-    email: "instagram.testing@example.com",
-    phone: null,
+    email: "instagram.testing@example.invalid",
+    phone: "",
     campaignId: "CAM-001",
     sourcePlatform: "Instagram",
     consentStatus: "Recorded",
-    queueStatus: "Pending",
-    createdAt: new Date().toISOString(),
-    retrievedAt: null
+    queueStatus: "Pending"
   },
   {
     id: "LEAD-003",
     name: "LinkedIn Testing Lead",
-    email: "linkedin.testing@example.com",
-    phone: null,
+    email: "linkedin.testing@example.invalid",
+    phone: "",
     campaignId: "CAM-001",
     sourcePlatform: "LinkedIn",
     consentStatus: "Recorded",
-    queueStatus: "Pending",
-    createdAt: new Date().toISOString(),
-    retrievedAt: null
+    queueStatus: "Pending"
   }
 ];
 
