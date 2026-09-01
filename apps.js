@@ -52,6 +52,91 @@ function saveToStorage() {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(campaigns));
 }
 
+function escapeHtml(value) {
+    const element = document.createElement("div");
+    element.textContent = String(value ?? "");
+    return element.innerHTML;
+}
+
+function getStatusClass(status) {
+    const statusClasses = {
+        Active: "status-active",
+        Draft: "status-draft",
+        Paused: "status-paused",
+        Completed: "status-completed"
+    };
+
+    return statusClasses[status] || "status-draft";
+}
+
+function formatBudget(value) {
+    return new Intl.NumberFormat("en-AU", {
+        style: "currency",
+        currency: "AUD",
+        maximumFractionDigits: 0
+    }).format(Number(value) || 0);
+}
+
+function setActiveView(viewName) {
+    document.querySelectorAll("[data-view]").forEach((button) => {
+        button.classList.toggle(
+            "active",
+            button.dataset.view === viewName
+        );
+    });
+}
+
+function renderRecentCampaigns() {
+    const tableBody =
+        document.getElementById("recentCampaignsBody");
+
+    if (!tableBody) {
+        return;
+    }
+
+    const recentCampaigns = [...campaigns]
+        .sort(
+            (first, second) =>
+                new Date(second.startDate) -
+                new Date(first.startDate)
+        )
+        .slice(0, 5);
+
+    if (recentCampaigns.length === 0) {
+        tableBody.innerHTML = `
+            <tr>
+                <td colspan="5">
+                    No campaigns have been created yet.
+                </td>
+            </tr>
+        `;
+
+        return;
+    }
+
+    tableBody.innerHTML = recentCampaigns.map((campaign) => `
+        <tr>
+            <td>
+                <strong>
+                    ${escapeHtml(campaign.campaignName)}
+                </strong>
+            </td>
+
+            <td>${escapeHtml(campaign.channel)}</td>
+
+            <td>
+                <span class="status-badge ${getStatusClass(campaign.status)}">
+                    ${escapeHtml(campaign.status)}
+                </span>
+            </td>
+
+            <td>${escapeHtml(campaign.startDate)}</td>
+
+            <td>${formatBudget(campaign.budget)}</td>
+        </tr>
+    `).join("");
+}
+
 function hideAll() {
     document.getElementById("dashboardSection").classList.add("hidden");
     document.getElementById("campaignSection").classList.add("hidden");
@@ -60,25 +145,40 @@ function hideAll() {
 }
 
 function updateDashboard() {
-    document.getElementById("totalCampaigns").textContent = campaigns.length;
+    document.getElementById("totalCampaigns").textContent =
+        campaigns.length;
 
     document.getElementById("activeCampaigns").textContent =
-        campaigns.filter(campaign => campaign.status === "Active").length;
+        campaigns.filter(
+            campaign => campaign.status === "Active"
+        ).length;
 
     document.getElementById("draftCampaigns").textContent =
-        campaigns.filter(campaign => campaign.status === "Draft").length;
+        campaigns.filter(
+            campaign => campaign.status === "Draft"
+        ).length;
+
+    renderRecentCampaigns();
 }
 
 function showDashboard() {
     hideAll();
     updateDashboard();
-    document.getElementById("dashboardSection").classList.remove("hidden");
+    setActiveView("dashboard");
+
+    document
+        .getElementById("dashboardSection")
+        .classList.remove("hidden");
 }
 
 function showCampaigns() {
     hideAll();
     renderCampaigns();
-    document.getElementById("campaignSection").classList.remove("hidden");
+    setActiveView("campaigns");
+
+    document
+        .getElementById("campaignSection")
+        .classList.remove("hidden");
 }
 
 function showCreateForm() {
@@ -86,12 +186,16 @@ function showCreateForm() {
 
     document.querySelector("form").reset();
     document.getElementById("campaignId").value = "";
-    document.getElementById("formTitle").textContent = "Create Campaign";
+    document.getElementById("formTitle").textContent =
+        "Create Campaign";
     document.getElementById("message").textContent = "";
 
-    document.getElementById("formSection").classList.remove("hidden");
-}
+    setActiveView("create");
 
+    document
+        .getElementById("formSection")
+        .classList.remove("hidden");
+}
 function renderCampaigns() {
     const list = document.getElementById("campaignList");
     const filter = document.getElementById("statusFilter").value;
@@ -294,4 +398,4 @@ function deleteCampaign(id) {
     renderCampaigns();
 }
 
-updateDashboard();
+showDashboard();
