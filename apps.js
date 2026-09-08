@@ -208,8 +208,14 @@ function renderCampaigns() {
             : campaigns.filter(campaign => campaign.status === filter);
 
     if (results.length === 0) {
-        list.innerHTML = "<p>No campaigns found.</p>";
-        return;
+    list.innerHTML = `
+        <div class="empty-state">
+            <h3>No campaigns found.</h3>
+            <p>There are no campaigns matching this view.</p>
+        </div>
+    `;
+    return;
+}
     }
 
     results.forEach(campaign => {
@@ -222,9 +228,11 @@ function renderCampaigns() {
             <p><strong>Channel:</strong> ${campaign.channel}</p>
             <p><strong>Status:</strong> ${campaign.status}</p>
 
-            <button onclick="viewCampaign(${campaign.id})">View</button>
-            <button onclick="editCampaign(${campaign.id})">Edit</button>
-            <button onclick="deleteCampaign(${campaign.id})">Delete</button>
+           <div class="campaign-actions">
+    <button class="action-button" onclick="viewCampaign(${campaign.id})">View</button>
+    <button class="action-button" onclick="editCampaign(${campaign.id})">Edit</button>
+    <button class="action-button action-danger" onclick="deleteCampaign(${campaign.id})">Delete</button>
+</div>
         `;
 
         list.appendChild(card);
