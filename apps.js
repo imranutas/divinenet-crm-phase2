@@ -52,6 +52,120 @@ function saveToStorage() {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(campaigns));
 }
 
+function escapeHtml(value) {
+    const element = document.createElement("div");
+    element.textContent = String(value ?? "");
+    return element.innerHTML;
+}
+
+function getStatusClass(status) {
+    const statusClasses = {
+        Active: "status-active",
+        Draft: "status-draft",
+        Paused: "status-paused",
+        Completed: "status-completed"
+    };
+
+    return statusClasses[status] || "status-draft";
+}
+
+function formatBudget(value) {
+    const amount = Number(value);
+
+    if (!Number.isFinite(amount)) {
+        return "A$0";
+    }
+
+    return new Intl.NumberFormat("en-AU", {
+        style: "currency",
+        currency: "AUD",
+        maximumFractionDigits: 0
+    }).format(amount);
+}function parseBudget(value) {
+    const text = String(value || "")
+        .trim()
+        .toLowerCase()
+        .replace(/[$,\s]/g, "");
+
+    if (!text) {
+        return NaN;
+    }
+
+    if (text.endsWith("k")) {
+        const number = Number(text.slice(0, -1));
+
+        if (!Number.isFinite(number)) {
+            return NaN;
+        }
+
+        return number * 1000;
+    }
+
+    const number = Number(text);
+
+    return Number.isFinite(number) ? number : NaN;
+}
+
+function setActiveView(viewName) {
+    document.querySelectorAll("[data-view]").forEach((button) => {
+        button.classList.toggle(
+            "active",
+            button.dataset.view === viewName
+        );
+    });
+}
+
+function renderRecentCampaigns() {
+    const tableBody =
+        document.getElementById("recentCampaignsBody");
+
+    if (!tableBody) {
+        return;
+    }
+
+    const recentCampaigns = [...campaigns]
+        .sort(
+            (first, second) =>
+                new Date(second.startDate) -
+                new Date(first.startDate)
+        )
+        .slice(0, 5);
+
+    if (recentCampaigns.length === 0) {
+        tableBody.innerHTML = `
+            <tr>
+                <td colspan="5">
+                    No campaigns have been created yet.
+                </td>
+            </tr>
+        `;
+
+        return;
+    }
+
+    tableBody.innerHTML = recentCampaigns.map((campaign) => `
+        <tr>
+            <td>
+                <strong>
+                    ${escapeHtml(campaign.campaignName)}
+                </strong>
+            </td>
+
+            <td>${escapeHtml(campaign.channel)}</td>
+
+            <td>
+                <span class="status-badge ${getStatusClass(campaign.status)}">
+                    ${escapeHtml(campaign.status)}
+                </span>
+            </td>
+
+            <td>${escapeHtml(campaign.startDate)}</td>
+
+            <td>${formatBudget(campaign.budget)}</td>
+        </tr>
+    `).join("");
+}
+
 function hideAll() {
     document.getElementById("dashboardSection").classList.add("hidden");
     document.getElementById("campaignSection").classList.add("hidden");
@@ -60,25 +174,40 @@ function hideAll() {
 }
 
 function updateDashboard() {
-    document.getElementById("totalCampaigns").textContent = campaigns.length;
+    document.getElementById("totalCampaigns").textContent =
+        campaigns.length;
 
     document.getElementById("activeCampaigns").textContent =
-        campaigns.filter(campaign => campaign.status === "Active").length;
+        campaigns.filter(
+            campaign => campaign.status === "Active"
+        ).length;
 
     document.getElementById("draftCampaigns").textContent =
-        campaigns.filter(campaign => campaign.status === "Draft").length;
+        campaigns.filter(
+            campaign => campaign.status === "Draft"
+        ).length;
+
+    renderRecentCampaigns();
 }
 
 function showDashboard() {
     hideAll();
     updateDashboard();
-    document.getElementById("dashboardSection").classList.remove("hidden");
+    setActiveView("dashboard");
+
+    document
+        .getElementById("dashboardSection")
+        .classList.remove("hidden");
 }
 
 function showCampaigns() {
     hideAll();
     renderCampaigns();
-    document.getElementById("campaignSection").classList.remove("hidden");
+    setActiveView("campaigns");
+
+    document
+        .getElementById("campaignSection")
+        .classList.remove("hidden");
 }
 
 function showCreateForm() {
@@ -86,12 +215,16 @@ function showCreateForm() {
 
     document.querySelector("form").reset();
     document.getElementById("campaignId").value = "";
-    document.getElementById("formTitle").textContent = "Create Campaign";
+    document.getElementById("formTitle").textContent =
+        "Create Campaign";
     document.getElementById("message").textContent = "";
 
-    document.getElementById("formSection").classList.remove("hidden");
-}
+    setActiveView("create");
 
+    document
+        .getElementById("formSection")
+        .classList.remove("hidden");
+}
 function renderCampaigns() {
     const list = document.getElementById("campaignList");
     const filter = document.getElementById("statusFilter").value;
@@ -104,9 +237,14 @@ function renderCampaigns() {
             : campaigns.filter(campaign => campaign.status === filter);
 
     if (results.length === 0) {
-        list.innerHTML = "<p>No campaigns found.</p>";
-        return;
-    }
+    list.innerHTML = `
+        <div class="empty-state">
+            <h3>No campaigns found.</h3>
+            <p>There are no campaigns matching this view.</p>
+        </div>
+    `;
+    return;
+}
 
     results.forEach(campaign => {
         const card = document.createElement("div");
@@ -118,9 +256,11 @@ function renderCampaigns() {
             <p><strong>Channel:</strong> ${campaign.channel}</p>
             <p><strong>Status:</strong> ${campaign.status}</p>
 
-            <button onclick="viewCampaign(${campaign.id})">View</button>
-            <button onclick="editCampaign(${campaign.id})">Edit</button>
-            <button onclick="deleteCampaign(${campaign.id})">Delete</button>
+           <div class="campaign-actions">
+    <button class="action-button" onclick="viewCampaign(${campaign.id})">View</button>
+    <button class="action-button" onclick="editCampaign(${campaign.id})">Edit</button>
+    <button class="action-button action-danger" onclick="deleteCampaign(${campaign.id})">Delete</button>
+</div>
         `;
 
         list.appendChild(card);
@@ -146,13 +286,24 @@ function saveCampaign(event) {
         .getElementById("objective")
         .value.trim();
 
+        const prompt = document
+  .getElementById("prompt")
+  .value.trim();
+
     const targetAudience = document
         .getElementById("targetAudience")
         .value.trim();
 
     const startDate = document.getElementById("startDate").value;
     const endDate = document.getElementById("endDate").value;
-    const budget = document.getElementById("budget").value;
+   const budgetInput = document.getElementById("budget").value;
+const budget = parseBudget(budgetInput);
+
+if (!Number.isFinite(budget) || budget < 0) {
+    document.getElementById("message").textContent =
+        "Enter a valid budget such as 10000 or 10k.";
+    return;
+}
     const channel = document.getElementById("channel").value;
     const status = document.getElementById("status").value;
     const message = document.getElementById("message");
@@ -186,10 +337,11 @@ function saveCampaign(event) {
         client,
         brand,
         objective,
+        prompt,
         targetAudience,
         startDate,
         endDate,
-        budget: Number(budget),
+        budget,
         channel,
         status
     };
@@ -228,7 +380,7 @@ function viewCampaign(id) {
         <p><strong>Target Audience:</strong> ${campaign.targetAudience}</p>
         <p><strong>Start Date:</strong> ${campaign.startDate}</p>
         <p><strong>End Date:</strong> ${campaign.endDate}</p>
-        <p><strong>Budget:</strong> $${campaign.budget}</p>
+        <p><strong>Budget:</strong> ${formatBudget(campaign.budget)}</p>
         <p><strong>Channel:</strong> ${campaign.channel}</p>
         <p><strong>Status:</strong> ${campaign.status}</p>
     `;
@@ -252,6 +404,7 @@ function editCampaign(id) {
     document.getElementById("brand").value = campaign.brand;
     document.getElementById("objective").value =
         campaign.objective;
+        document.getElementById("prompt").value = campaign.prompt || "";
     document.getElementById("targetAudience").value =
         campaign.targetAudience;
     document.getElementById("startDate").value =
@@ -294,4 +447,4 @@ function deleteCampaign(id) {
     renderCampaigns();
 }
 
-updateDashboard();
+showDashboard();

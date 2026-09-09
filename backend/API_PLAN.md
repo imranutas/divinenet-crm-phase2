@@ -1,138 +1,84 @@
 # Campaign Management Backend API Plan
 
 Jira: DCRM2-5  
-Status: Draft  
-Data: Fictional test data only
+Status: Sprint 2 implementation update  
+Data: Testing data only
 
-## Proposed technology
+## Technology
 
 - Node.js
 - Express
-- Initial mock/in-memory data
-- Database connection will be completed separately under DCRM2-13
-
-The technology proposal requires technical review before final approval.
+- In-memory testing data for the current prototype
+- Database persistence will be handled separately under DCRM2-13
 
 ## Campaign fields
 
-- id
+Required fields:
+
 - campaignName
+- prompt
+- startDate
+- endDate
+- channel
+
+Optional fields:
+
 - client
 - brand
 - objective
 - targetAudience
-- startDate
-- endDate
 - budget
-- channel
 - status
 
-## Allowed channels
+If status is not provided, the backend uses Draft.
+
+## Supported platforms
 
 - Facebook
 - Instagram
+- LinkedIn
 
-## Allowed statuses
+## Supported statuses
 
 - Draft
 - Active
 - Paused
 - Completed
 
-## Planned API endpoints
+## Implemented API endpoints
 
-### GET /api/health
-
-Purpose: Confirm that the backend is running.
-
-Successful response:
-
-{
-  "success": true,
-  "message": "Divinenet CRM API is running"
-}
-
-### GET /api/campaigns
-
-Purpose: Return all campaigns.
-
-### GET /api/campaigns/:id
-
-Purpose: Return one campaign using its ID.
-
-### POST /api/campaigns
-
-Purpose: Create a campaign.
-
-### PUT /api/campaigns/:id
-
-Purpose: Update an existing campaign.
-
-### DELETE /api/campaigns/:id
-
-Purpose: Delete a campaign.
+- GET `/api/health`
+- GET `/api/campaigns`
+- GET `/api/campaigns/:id`
+- POST `/api/campaigns`
+- PUT `/api/campaigns/:id`
+- DELETE `/api/campaigns/:id`
 
 ## Validation rules
 
 - Campaign name is required.
-- Client is required.
-- Brand is required.
-- Objective is required.
-- Target audience is required.
+- Prompt is required.
 - Start date is required.
 - End date is required.
+- Channel is required.
 - End date cannot be before the start date.
-- Budget must be zero or greater.
-- Channel must be Facebook or Instagram.
-- Status must be Draft, Active, Paused or Completed.
-- Real customer information must not be used.
+- Budget is optional.
+- If budget is provided, it must be a number of zero or greater.
+- Channel must be Facebook, Instagram or LinkedIn.
+- Status is optional.
+- If status is provided, it must be Draft, Active, Paused or Completed.
 
-## Response format
+## Data and security
 
-Successful response:
+- Testing data is used during Sprint 2.
+- No real customer information is used.
+- No passwords or API keys are stored in the repository.
+- No `.env` files are committed.
+- No `node_modules` folder is committed.
 
-{
-  "success": true,
-  "data": {}
-}
+## Current limitations
 
-Error response:
-
-{
-  "success": false,
-  "message": "Clear error explanation"
-}
-
-## Expected result
-
-The frontend will send JSON requests to the backend. The backend will validate the request and return a JSON response.
-
-## Excluded from this Jira task
-
-- Database implementation
-- Claude integration
-- Meta integration
-- Phase 1 integration
-- Lead scoring
-- Conversion logic
-
-  ## Implementation status - 15 August 2026
-
-Implemented and locally checked:
-
-- GET /api/health
-- GET /api/campaigns
-- GET /api/campaigns/:id
-- POST /api/campaigns with validation
-- JSON response for unknown routes
-
-Pending:
-
-- PUT /api/campaigns/:id
-- DELETE /api/campaigns/:id
-- Database connection under DCRM2-13
-- Frontend API connection
-
-
-
-
+- Campaign data is stored temporarily in memory.
+- Campaign data resets when the backend server restarts.
+- Permanent database persistence is outside DCRM2-5.
+- Frontend-to-backend integration is handled separately.

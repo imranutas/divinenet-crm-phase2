@@ -4,47 +4,148 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>Divinenet CRM - Sprint 1</title>
+<title>Divinenet CRM - Sprint 3</title>
 
 <link rel="stylesheet" href="style.css">
 </head>
 
 <body>
 
-<header>
-    <h1>Divinenet AI Marketing CRM</h1>
-    <p>Phase 2 - Sprint 1 Campaign Management Prototype</p>
+<header class="site-header">
+    <div class="header-content">
+        <div>
+            <p class="eyebrow">SPRINT 3</p>
+            <h1>Divinenet AI Marketing CRM</h1>
+            <p class="header-subtitle">
+                Campaign Management and Lead Queue
+            </p>
+        </div>
+
+        <span class="sprint-badge">Sprint 3</span>
+    </div>
 </header>
 
-<nav>
-    <button onclick="showDashboard()">Dashboard</button>
-    <button onclick="showCampaigns()">Campaigns</button>
-    <button onclick="showCreateForm()">Create Campaign</button>
+<nav class="main-nav" aria-label="Main navigation">
+    <div class="nav-content">
+        <button
+            class="nav-button active"
+            data-view="dashboard"
+            onclick="showDashboard()"
+        >
+            Dashboard
+        </button>
+
+        <button
+            class="nav-button"
+            data-view="campaigns"
+            onclick="showCampaigns()"
+        >
+            Campaigns
+        </button>
+
+        <button
+            class="nav-button"
+            data-view="create"
+            onclick="showCreateForm()"
+        >
+            Create Campaign
+        </button>
+
+        <a class="nav-button" href="lead-prototype.html">
+            Lead Queue
+        </a>
+    </div>
 </nav>
 
 <main>
 
 <section id="dashboardSection">
-    <h2>Dashboard</h2>
+
+    <div class="section-heading">
+        <div>
+            <p class="eyebrow dark">CAMPAIGN OVERVIEW</p>
+            <h2>Dashboard</h2>
+            <p class="section-description">
+                Review campaign activity and open the Sprint 3 lead queue.
+            </p>
+        </div>
+
+        <button class="primary-button" onclick="showCreateForm()">
+            + New Campaign
+        </button>
+    </div>
 
     <div class="dashboard">
 
-        <div class="card">
-            <h3>Total Campaigns</h3>
-            <p id="totalCampaigns">2</p>
-        </div>
+        <article class="card metric-card">
+            <div class="metric-icon" aria-hidden="true">◎</div>
 
-        <div class="card">
-            <h3>Active Campaigns</h3>
-            <p id="activeCampaigns">1</p>
-        </div>
+            <div>
+                <h3>Total Campaigns</h3>
+                <p class="metric-number" id="totalCampaigns">0</p>
+                <span class="metric-description">
+                    All recorded campaigns
+                </span>
+            </div>
+        </article>
 
-        <div class="card">
-            <h3>Draft Campaigns</h3>
-            <p id="draftCampaigns">1</p>
-        </div>
+        <article class="card metric-card">
+            <div class="metric-icon active-icon" aria-hidden="true">↗</div>
+
+            <div>
+                <h3>Active Campaigns</h3>
+                <p class="metric-number" id="activeCampaigns">0</p>
+                <span class="metric-description">
+                    Currently running
+                </span>
+            </div>
+        </article>
+
+        <article class="card metric-card">
+            <div class="metric-icon draft-icon" aria-hidden="true">✦</div>
+
+            <div>
+                <h3>Draft Campaigns</h3>
+                <p class="metric-number" id="draftCampaigns">0</p>
+                <span class="metric-description">
+                    Awaiting activation
+                </span>
+            </div>
+        </article>
 
     </div>
+
+    <section class="recent-panel">
+
+        <div class="recent-heading">
+            <div>
+                <h2>Recent Campaigns</h2>
+                <p>Latest campaign records in this prototype.</p>
+            </div>
+
+            <button class="text-button" onclick="showCampaigns()">
+                View all campaigns
+            </button>
+        </div>
+
+        <div class="table-wrapper">
+            <table class="campaign-table">
+                <thead>
+                    <tr>
+                        <th>Campaign Name</th>
+                        <th>Channel</th>
+                        <th>Status</th>
+                        <th>Start Date</th>
+                        <th>Budget</th>
+                    </tr>
+                </thead>
+
+                <tbody id="recentCampaignsBody"></tbody>
+            </table>
+        </div>
+
+    </section>
+
 </section>
 
 <section id="campaignSection" class="hidden">
@@ -87,6 +188,9 @@
         <label>Objective</label>
         <textarea id="objective"></textarea>
 
+        <label>Prompt</label>
+<textarea id="prompt" placeholder="Enter the AI campaign prompt"></textarea>
+
         <label>Target Audience</label>
         <input id="targetAudience" type="text">
 
@@ -97,15 +201,15 @@
         <input id="endDate" type="date">
 
         <label>Budget</label>
-        <input id="budget" type="number" min="0">
+        <input id="budget" type="text" placeholder="e.g. 10000 or 10k">
 
         <label>Marketing Channel</label>
         <select id="channel">
             <option value="">Select Channel</option>
             <option>Facebook</option>
             <option>Instagram</option>
-            <option>YouTube</option>
-            <option>TikTok</option>
+            <option>LinkedIn</option>
+            <option>website</option>
         </select>
 
         <label>Status</label>
@@ -137,7 +241,6 @@
 
 </main>
 
-<script src="apps.js"></script>
-
+<script src="apps.js?v=3"></script>
 </body>
 </html>
