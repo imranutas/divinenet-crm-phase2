@@ -429,3 +429,219 @@ test("returns 404 for unknown API route", async () => {
     await environment.close();
   }
 });
+test("lead stage API allows New to Contacted", async () => {
+  const environment =
+    await createTestServer();
+
+  try {
+    await createCampaign(
+      environment.baseUrl
+    );
+
+    await requestJson(
+      environment.baseUrl,
+      "/api/leads",
+      {
+        method: "POST",
+        body: JSON.stringify({
+          campaignId: "CAM-001",
+          name: "Pipeline Testing Lead",
+          email: "pipeline@example.com",
+          sourcePlatform: "Website",
+          consentStatus: "Recorded"
+        })
+      }
+    );
+
+    const result = await requestJson(
+      environment.baseUrl,
+      "/api/leads/LEAD-001/stage",
+      {
+        method: "PATCH",
+        body: JSON.stringify({
+          stage: "Contacted"
+        })
+      }
+    );
+
+    assert.equal(result.status, 200);
+    assert.equal(result.body.success, true);
+    assert.equal(
+      result.body.data.stage,
+      "Contacted"
+    );
+  } finally {
+    await environment.close();
+  }
+});
+
+test("lead stage API allows Contacted to Qualified", async () => {
+  const environment =
+    await createTestServer();
+
+  try {
+    await createCampaign(
+      environment.baseUrl
+    );
+
+    await requestJson(
+      environment.baseUrl,
+      "/api/leads",
+      {
+        method: "POST",
+        body: JSON.stringify({
+          campaignId: "CAM-001",
+          name: "Pipeline Testing Lead",
+          email: "pipeline@example.com",
+          sourcePlatform: "Website",
+          consentStatus: "Recorded"
+        })
+      }
+    );
+
+    await requestJson(
+      environment.baseUrl,
+      "/api/leads/LEAD-001/stage",
+      {
+        method: "PATCH",
+        body: JSON.stringify({
+          stage: "Contacted"
+        })
+      }
+    );
+
+    const result = await requestJson(
+      environment.baseUrl,
+      "/api/leads/LEAD-001/stage",
+      {
+        method: "PATCH",
+        body: JSON.stringify({
+          stage: "Qualified"
+        })
+      }
+    );
+
+    assert.equal(result.status, 200);
+    assert.equal(result.body.success, true);
+    assert.equal(
+      result.body.data.stage,
+      "Qualified"
+    );
+  } finally {
+    await environment.close();
+  }
+});
+
+test("lead stage API blocks New from skipping to Qualified", async () => {
+  const environment =
+    await createTestServer();
+
+  try {
+    await createCampaign(
+      environment.baseUrl
+    );
+
+    await requestJson(
+      environment.baseUrl,
+      "/api/leads",
+      {
+        method: "POST",
+        body: JSON.stringify({
+          campaignId: "CAM-001",
+          name: "Pipeline Testing Lead",
+          email: "pipeline@example.com",
+          sourcePlatform: "Website",
+          consentStatus: "Recorded"
+        })
+      }
+    );
+
+    const result = await requestJson(
+      environment.baseUrl,
+      "/api/leads/LEAD-001/stage",
+      {
+        method: "PATCH",
+        body: JSON.stringify({
+          stage: "Qualified"
+        })
+      }
+    );
+
+    assert.equal(result.status, 400);
+    assert.equal(result.body.success, false);
+    assert.equal(
+      result.body.message,
+      "Invalid stage transition from New to Qualified"
+    );
+  } finally {
+    await environment.close();
+  }
+});
+
+test("lead stage API blocks backwards transition", async () => {
+  const environment =
+    await createTestServer();
+
+  try {
+    await createCampaign(
+      environment.baseUrl
+    );
+
+    await requestJson(
+      environment.baseUrl,
+      "/api/leads",
+      {
+        method: "POST",
+        body: JSON.stringify({
+          campaignId: "CAM-001",
+          name: "Pipeline Testing Lead",
+          email: "pipeline@example.com",
+          sourcePlatform: "Website",
+          consentStatus: "Recorded"
+        })
+      }
+    );
+
+    await requestJson(
+      environment.baseUrl,
+      "/api/leads/LEAD-001/stage",
+      {
+        method: "PATCH",
+        body: JSON.stringify({
+          stage: "Contacted"
+        })
+      }
+    );
+
+    await requestJson(
+      environment.baseUrl,
+      "/api/leads/LEAD-001/stage",
+      {
+        method: "PATCH",
+        body: JSON.stringify({
+          stage: "Qualified"
+        })
+      }
+    );
+
+    const result = await requestJson(
+      environment.baseUrl,
+      "/api/leads/LEAD-001/stage",
+      {
+        method: "PATCH",
+        body: JSON.stringify({
+          stage: "Contacted"
+        })
+      }
+    );
+
+    assert.equal(result.status, 400);
+    assert.equal(result.body.success, false);
+    assert.equal(
+      result.body.message,
+      "Invalid stage transition from Qualified to Contacted"
+    );
+  } finally {
+    await environment.close();
+  }
+});

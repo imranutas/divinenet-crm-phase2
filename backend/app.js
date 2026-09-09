@@ -12,6 +12,10 @@ const {
   createLeadRepository
 } = require("./repositories/leadRepository");
 
+const {
+  validateStageTransition
+} = require("./services/lead-pipeline");
+
 function createApp(options = {}) {
   const app = express();
 
@@ -111,7 +115,8 @@ function createApp(options = {}) {
       campaign.budget !== null &&
       campaign.budget !== ""
     ) {
-      const budget = Number(campaign.budget);
+      const budget =
+        Number(campaign.budget);
 
       if (
         !Number.isFinite(budget) ||
@@ -271,6 +276,7 @@ function createApp(options = {}) {
     ).padStart(3, "0")}`;
   }
 
+  // HEALTH
   app.get(
     "/api/health",
     (request, response) => {
@@ -282,6 +288,7 @@ function createApp(options = {}) {
     }
   );
 
+  // GET ALL CAMPAIGNS
   app.get(
     "/api/campaigns",
     (request, response) => {
@@ -297,6 +304,7 @@ function createApp(options = {}) {
     }
   );
 
+  // GET CAMPAIGN
   app.get(
     "/api/campaigns/:id",
     (request, response) => {
@@ -322,6 +330,7 @@ function createApp(options = {}) {
     }
   );
 
+  // CREATE CAMPAIGN
   app.post(
     "/api/campaigns",
     (request, response) => {
@@ -342,42 +351,51 @@ function createApp(options = {}) {
 
       const newCampaign = {
         id: generateCampaignId(),
+
         campaignName:
           String(
             request.body.campaignName
           ).trim(),
+
         prompt:
           String(
             request.body.prompt
           ).trim(),
+
         client:
           request.body.client
             ? String(
                 request.body.client
               ).trim()
             : "",
+
         brand:
           request.body.brand
             ? String(
                 request.body.brand
               ).trim()
             : "",
+
         objective:
           request.body.objective
             ? String(
                 request.body.objective
               ).trim()
             : "",
+
         targetAudience:
           request.body.targetAudience
             ? String(
                 request.body.targetAudience
               ).trim()
             : "",
+
         startDate:
           request.body.startDate,
+
         endDate:
           request.body.endDate,
+
         budget:
           request.body.budget ===
             undefined ||
@@ -387,11 +405,14 @@ function createApp(options = {}) {
             : Number(
                 request.body.budget
               ),
+
         channel:
           request.body.channel,
+
         status:
           request.body.status ||
           "Draft",
+
         createdAt: now,
         updatedAt: now
       };
@@ -411,6 +432,7 @@ function createApp(options = {}) {
     }
   );
 
+  // UPDATE CAMPAIGN
   app.put(
     "/api/campaigns/:id",
     (request, response) => {
@@ -481,6 +503,7 @@ function createApp(options = {}) {
     }
   );
 
+  // DELETE CAMPAIGN
   app.delete(
     "/api/campaigns/:id",
     (request, response) => {
@@ -526,6 +549,7 @@ function createApp(options = {}) {
     }
   );
 
+  // GET ALL LEADS
   app.get(
     "/api/leads",
     (request, response) => {
@@ -545,6 +569,7 @@ function createApp(options = {}) {
     }
   );
 
+  // GET LEAD
   app.get(
     "/api/leads/:id",
     (request, response) => {
@@ -558,7 +583,8 @@ function createApp(options = {}) {
           .status(404)
           .json({
             success: false,
-            message: "Lead not found"
+            message:
+              "Lead not found"
           });
       }
 
@@ -569,6 +595,7 @@ function createApp(options = {}) {
     }
   );
 
+  // CREATE LEAD
   app.post(
     "/api/leads",
     (request, response) => {
@@ -604,30 +631,35 @@ function createApp(options = {}) {
 
       const newLead = {
         id: generateLeadId(),
+
         campaignId:
           request.body.campaignId,
+
         name:
           String(
             request.body.name
           ).trim(),
+
         email:
           String(
             request.body.email
           )
             .trim()
             .toLowerCase(),
+
         phone:
           request.body.phone
             ? String(
                 request.body.phone
               ).trim()
             : "",
+
         sourcePlatform:
-          request.body
-            .sourcePlatform,
+          request.body.sourcePlatform,
+
         consentStatus:
-          request.body
-            .consentStatus,
+          request.body.consentStatus,
+
         stage: "New",
         score: null,
         scorePolicyVersion: null,
@@ -647,6 +679,7 @@ function createApp(options = {}) {
     }
   );
 
+  // UPDATE LEAD
   app.put(
     "/api/leads/:id",
     (request, response) => {
@@ -660,7 +693,8 @@ function createApp(options = {}) {
           .status(404)
           .json({
             success: false,
-            message: "Lead not found"
+            message:
+              "Lead not found"
           });
       }
 
@@ -670,9 +704,10 @@ function createApp(options = {}) {
       const updatedLead = {
         ...current,
         ...request.body,
+
         id: current.id,
 
-        // These values remain server-owned.
+        // Server-owned fields
         stage: current.stage,
         score: current.score,
         scorePolicyVersion:
@@ -736,11 +771,15 @@ function createApp(options = {}) {
 
       response.status(200).json({
         success: true,
-        data: toApiLead(savedLead)
+        data:
+          toApiLead(
+            savedLead
+          )
       });
     }
   );
 
+  // UPDATE LEAD STAGE
   app.patch(
     "/api/leads/:id/stage",
     (request, response) => {
@@ -754,27 +793,27 @@ function createApp(options = {}) {
           .status(404)
           .json({
             success: false,
-            message: "Lead not found"
+            message:
+              "Lead not found"
           });
       }
 
-      const allowedStages = [
-        "New",
-        "Contacted",
-        "Qualified"
-      ];
-
-      if (
-        !allowedStages.includes(
+      // Enforce provisional Sprint 3
+      // development pipeline:
+      // New -> Contacted -> Qualified
+      const transition =
+        validateStageTransition(
+          existing.stage,
           request.body.stage
-        )
-      ) {
+        );
+
+      if (!transition.allowed) {
         return response
           .status(400)
           .json({
             success: false,
             message:
-              "Stage must be New, Contacted or Qualified"
+              transition.message
           });
       }
 
@@ -787,11 +826,15 @@ function createApp(options = {}) {
 
       response.status(200).json({
         success: true,
-        data: toApiLead(updatedLead)
+        data:
+          toApiLead(
+            updatedLead
+          )
       });
     }
   );
 
+  // DELETE LEAD
   app.delete(
     "/api/leads/:id",
     (request, response) => {
@@ -805,7 +848,8 @@ function createApp(options = {}) {
           .status(404)
           .json({
             success: false,
-            message: "Lead not found"
+            message:
+              "Lead not found"
           });
       }
 
@@ -817,12 +861,16 @@ function createApp(options = {}) {
     }
   );
 
-  app.use((request, response) => {
-    response.status(404).json({
-      success: false,
-      message: "Route not found"
-    });
-  });
+  // UNKNOWN ROUTE
+  app.use(
+    (request, response) => {
+      response.status(404).json({
+        success: false,
+        message:
+          "Route not found"
+      });
+    }
+  );
 
   return {
     app,
