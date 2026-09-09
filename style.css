@@ -490,4 +490,45 @@ select:focus {
     .metric-card {
         min-height: 130px;
     }
+}.campaign-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 14px;
+    flex-wrap: wrap;
+}
+
+.action-button {
+    border: 1px solid #d1d5db;
+    background: #ffffff;
+    padding: 7px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.action-button:hover {
+    background: #f3f4f6;
+}
+
+.action-danger {
+    color: #b42318;
+}
+
+.action-danger:hover {
+    background: #fff1f0;
+}.empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    margin-top: 20px;
+}
+
+.empty-state h3 {
+    margin: 0 0 8px;
+}
+
+.empty-state p {
+    margin: 0;
 }

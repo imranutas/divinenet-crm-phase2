@@ -70,11 +70,40 @@ function getStatusClass(status) {
 }
 
 function formatBudget(value) {
+    const amount = Number(value);
+
+    if (!Number.isFinite(amount)) {
+        return "A$0";
+    }
+
     return new Intl.NumberFormat("en-AU", {
         style: "currency",
         currency: "AUD",
         maximumFractionDigits: 0
-    }).format(Number(value) || 0);
+    }).format(amount);
+}function parseBudget(value) {
+    const text = String(value || "")
+        .trim()
+        .toLowerCase()
+        .replace(/[$,\s]/g, "");
+
+    if (!text) {
+        return NaN;
+    }
+
+    if (text.endsWith("k")) {
+        const number = Number(text.slice(0, -1));
+
+        if (!Number.isFinite(number)) {
+            return NaN;
+        }
+
+        return number * 1000;
+    }
+
+    const number = Number(text);
+
+    return Number.isFinite(number) ? number : NaN;
 }
 
 function setActiveView(viewName) {
@@ -208,9 +237,14 @@ function renderCampaigns() {
             : campaigns.filter(campaign => campaign.status === filter);
 
     if (results.length === 0) {
-        list.innerHTML = "<p>No campaigns found.</p>";
-        return;
-    }
+    list.innerHTML = `
+        <div class="empty-state">
+            <h3>No campaigns found.</h3>
+            <p>There are no campaigns matching this view.</p>
+        </div>
+    `;
+    return;
+}
 
     results.forEach(campaign => {
         const card = document.createElement("div");
@@ -222,9 +256,11 @@ function renderCampaigns() {
             <p><strong>Channel:</strong> ${campaign.channel}</p>
             <p><strong>Status:</strong> ${campaign.status}</p>
 
-            <button onclick="viewCampaign(${campaign.id})">View</button>
-            <button onclick="editCampaign(${campaign.id})">Edit</button>
-            <button onclick="deleteCampaign(${campaign.id})">Delete</button>
+           <div class="campaign-actions">
+    <button class="action-button" onclick="viewCampaign(${campaign.id})">View</button>
+    <button class="action-button" onclick="editCampaign(${campaign.id})">Edit</button>
+    <button class="action-button action-danger" onclick="deleteCampaign(${campaign.id})">Delete</button>
+</div>
         `;
 
         list.appendChild(card);
@@ -250,13 +286,24 @@ function saveCampaign(event) {
         .getElementById("objective")
         .value.trim();
 
+        const prompt = document
+  .getElementById("prompt")
+  .value.trim();
+
     const targetAudience = document
         .getElementById("targetAudience")
         .value.trim();
 
     const startDate = document.getElementById("startDate").value;
     const endDate = document.getElementById("endDate").value;
-    const budget = document.getElementById("budget").value;
+   const budgetInput = document.getElementById("budget").value;
+const budget = parseBudget(budgetInput);
+
+if (!Number.isFinite(budget) || budget < 0) {
+    document.getElementById("message").textContent =
+        "Enter a valid budget such as 10000 or 10k.";
+    return;
+}
     const channel = document.getElementById("channel").value;
     const status = document.getElementById("status").value;
     const message = document.getElementById("message");
@@ -290,10 +337,11 @@ function saveCampaign(event) {
         client,
         brand,
         objective,
+        prompt,
         targetAudience,
         startDate,
         endDate,
-        budget: Number(budget),
+        budget,
         channel,
         status
     };
@@ -332,7 +380,7 @@ function viewCampaign(id) {
         <p><strong>Target Audience:</strong> ${campaign.targetAudience}</p>
         <p><strong>Start Date:</strong> ${campaign.startDate}</p>
         <p><strong>End Date:</strong> ${campaign.endDate}</p>
-        <p><strong>Budget:</strong> $${campaign.budget}</p>
+        <p><strong>Budget:</strong> ${formatBudget(campaign.budget)}</p>
         <p><strong>Channel:</strong> ${campaign.channel}</p>
         <p><strong>Status:</strong> ${campaign.status}</p>
     `;
@@ -356,6 +404,7 @@ function editCampaign(id) {
     document.getElementById("brand").value = campaign.brand;
     document.getElementById("objective").value =
         campaign.objective;
+        document.getElementById("prompt").value = campaign.prompt || "";
     document.getElementById("targetAudience").value =
         campaign.targetAudience;
     document.getElementById("startDate").value =
