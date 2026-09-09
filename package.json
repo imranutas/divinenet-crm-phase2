@@ -1,0 +1,13 @@
+{
+  "name": "divinenet-crm-sprint3",
+  "version": "0.1.0",
+  "private": true,
+  "engines": { "node": ">=24 <25" },
+  "scripts": {
+    "start": "node backend/server.js",
+    "test:api": "npm --prefix backend test",
+    "test:browser": "node scripts/browser-check.cjs",
+    "test": "npm run test:api && npm run test:browser"
+  },
+  "devDependencies": { "playwright": "1.62.1" }
+}

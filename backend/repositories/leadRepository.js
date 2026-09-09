@@ -119,7 +119,7 @@ function createLeadRepository(db) {
         )
         VALUES (?, ?, ?, ?, ?)
       `).run(
-        `LSH-${Date.now()}-${Math.floor(Math.random() * 10000)}`,
+        require('node:crypto').randomUUID(),
         id,
         currentLead.stage,
         stage,

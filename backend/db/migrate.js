@@ -13,6 +13,10 @@ function runMigrations(db) {
 
   db.exec(migrationSql);
 
+  const { normaliseDatabase, assetSchema } = require('./normalise');
+  normaliseDatabase(db);
+  assetSchema(db);
+
   return db;
 }
 
