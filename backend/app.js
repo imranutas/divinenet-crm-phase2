@@ -16,6 +16,10 @@ const {
   validateStageTransition
 } = require("./services/lead-pipeline");
 
+const {
+  createAnalyticsService
+} = require("./services/analytics-service");
+
 function createApp(options = {}) {
   const app = express();
 
@@ -29,6 +33,12 @@ function createApp(options = {}) {
 
   const leadRepository =
     createLeadRepository(db);
+
+  const analyticsService =
+    createAnalyticsService(
+      campaignRepository,
+      leadRepository
+    );
 
   app.use(cors());
   app.use(express.json());
@@ -798,9 +808,6 @@ function createApp(options = {}) {
           });
       }
 
-      // Enforce provisional Sprint 3
-      // development pipeline:
-      // New -> Contacted -> Qualified
       const transition =
         validateStageTransition(
           existing.stage,
@@ -857,6 +864,20 @@ function createApp(options = {}) {
         success: true,
         message:
           "Lead deleted successfully"
+      });
+    }
+  );
+
+  // ANALYTICS SUMMARY
+  app.get(
+    "/api/analytics/summary",
+    (request, response) => {
+      const summary =
+        analyticsService.getSummary();
+
+      response.status(200).json({
+        success: true,
+        data: summary
       });
     }
   );

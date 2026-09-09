@@ -645,3 +645,129 @@ test("lead stage API blocks backwards transition", async () => {
     await environment.close();
   }
 });
+test("analytics summary returns zero counts when database is empty", async () => {
+  const environment =
+    await createTestServer();
+
+  try {
+    const result = await requestJson(
+      environment.baseUrl,
+      "/api/analytics/summary"
+    );
+
+    assert.equal(result.status, 200);
+    assert.equal(result.body.success, true);
+
+    assert.equal(
+      result.body.data.totalCampaigns,
+      0
+    );
+
+    assert.equal(
+      result.body.data.totalLeads,
+      0
+    );
+
+    assert.deepEqual(
+      result.body.data.leadsByStage,
+      {
+        New: 0,
+        Contacted: 0,
+        Qualified: 0
+      }
+    );
+
+    assert.deepEqual(
+      result.body.data.leadsBySource,
+      {
+        Facebook: 0,
+        Instagram: 0,
+        LinkedIn: 0,
+        Website: 0
+      }
+    );
+  } finally {
+    await environment.close();
+  }
+});
+
+test("analytics summary returns factual stored campaign and lead counts", async () => {
+  const environment =
+    await createTestServer();
+
+  try {
+    await createCampaign(
+      environment.baseUrl
+    );
+
+    await requestJson(
+      environment.baseUrl,
+      "/api/leads",
+      {
+        method: "POST",
+        body: JSON.stringify({
+          campaignId: "CAM-001",
+          name: "Analytics API Lead",
+          email: "analytics@example.com",
+          sourcePlatform: "Website",
+          consentStatus: "Recorded"
+        })
+      }
+    );
+
+    const result = await requestJson(
+      environment.baseUrl,
+      "/api/analytics/summary"
+    );
+
+    assert.equal(result.status, 200);
+    assert.equal(result.body.success, true);
+
+    assert.equal(
+      result.body.data.totalCampaigns,
+      1
+    );
+
+    assert.equal(
+      result.body.data.totalLeads,
+      1
+    );
+
+    assert.equal(
+      result.body.data.leadsByStage.New,
+      1
+    );
+
+    assert.equal(
+      result.body.data.leadsByStage.Contacted,
+      0
+    );
+
+    assert.equal(
+      result.body.data.leadsByStage.Qualified,
+      0
+    );
+
+    assert.equal(
+      result.body.data.leadsBySource.Website,
+      1
+    );
+
+    assert.equal(
+      result.body.data.leadsBySource.Facebook,
+      0
+    );
+
+    assert.equal(
+      result.body.data.leadsBySource.Instagram,
+      0
+    );
+
+    assert.equal(
+      result.body.data.leadsBySource.LinkedIn,
+      0
+    );
+  } finally {
+    await environment.close();
+  }
+});
