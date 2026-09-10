@@ -1,60 +1,27 @@
-# DCRM2-5 Campaign Management Backend
+# Divinenet CRM Phase 2 – Backend
 
 ## Overview
 
-The campaign management backend is built using Node.js and Express for the Divinenet CRM Sprint 2 prototype.
+This backend supports the Divinenet AI Marketing CRM Phase 2 project. It provides persistent campaign and lead management, lead pipeline controls, factual analytics, and service boundaries for future AI, Phase 1, and social platform integrations.
 
-Campaign data is currently stored temporarily in memory and resets whenever the server restarts.
+The Sprint 3 backend work focuses on reliable data persistence, validation, automated testing, and keeping external integrations separate from the core application.
 
-## Setup
+## Technology
 
-1. Open the backend folder.
-2. Run `npm install`.
-3. Run `node server.js`.
-4. The API runs on port 3000.
+- Node.js
+- Express
+- SQLite
+- better-sqlite3
+- REST API
+- Automated Node.js tests
 
-## Required Campaign Fields
+Development and testing have been performed using:
 
-- campaignName
-- prompt
-- startDate
-- endDate
-- channel
+- Node.js v24.19.0
 
-## Optional Campaign Fields
+## Installation
 
-- client
-- brand
-- objective
-- targetAudience
-- budget
-- status
+From the `backend` directory, install dependencies:
 
-If status is not provided, the backend automatically uses Draft.
-
-## Supported Platforms
-
-- Facebook
-- Instagram
-- LinkedIn
-
-## API Endpoints
-
-- GET `/api/health`
-- GET `/api/campaigns`
-- GET `/api/campaigns/:id`
-- POST `/api/campaigns`
-- PUT `/api/campaigns/:id`
-- DELETE `/api/campaigns/:id`
-
-## Data and Security
-
-- Testing data is used during Sprint 2.
-- No real customer information is stored.
-- No passwords or API keys are stored in GitHub.
-- `.env` files are ignored.
-- `node_modules` is ignored.
-
-## Current Limitation
-
-Campaign data is stored in memory and is not permanently saved. Database persistence will be handled separately under DCRM2-13.
+```bash
+npm ci
