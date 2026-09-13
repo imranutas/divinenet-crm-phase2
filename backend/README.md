@@ -18,42 +18,81 @@ npx.cmd playwright install chromium
 
 ## Start the CRM
 
+From the repository root:
+
 ```powershell
 $env:CRM_ENABLE_LIVE_AI="false"
 $env:NODE_ENV="development"
-$env:PORT="3193"
+$env:PORT="3194"
+$env:CRM_DATABASE_PATH=Join-Path (Get-Location) "backend\db\local-review.sqlite"
 npm.cmd start
 ```
 
-Open:
+Open the CRM in the browser at:
 
-`http://127.0.0.1:3193/`
+`http://127.0.0.1:3194/`
 
-Opening `index.html` directly does not start the connected backend. The CRM must be started using `npm.cmd start`.
+Port `3194` is the shared local example. The application port is configurable using the `PORT` environment variable.
+
+Keep the server terminal open while using the CRM.
+
+To stop only the running CRM server, press:
+
+`Ctrl+C`
+
+Opening `index.html` directly does not start the connected backend. The connected CRM must be started using `npm.cmd start`.
 
 ## Database
 
 The application uses SQLite for persistent campaign and lead data.
 
-For an isolated development or verification database:
+The database location is controlled using the `CRM_DATABASE_PATH` environment variable.
+
+The shared local example uses:
 
 ```powershell
-$env:CRM_DATABASE_PATH="C:\temp\divinenet-review.sqlite"
+$env:CRM_DATABASE_PATH=Join-Path (Get-Location) "backend\db\local-review.sqlite"
 ```
 
-The database location is controlled by the `CRM_DATABASE_PATH` environment variable.
+This creates/uses:
 
-To restart using the same data, keep the same `CRM_DATABASE_PATH` value and run:
+`backend\db\local-review.sqlite`
+
+A new empty database can legitimately show zero campaign and lead records.
+
+Do not overwrite an active database when performing verification.
+
+## Restart With the Same Database
+
+To verify persistence, first stop the running CRM server using:
+
+`Ctrl+C`
+
+When restarting in the same terminal, keep the same `CRM_DATABASE_PATH` and run:
 
 ```powershell
 npm.cmd start
 ```
 
-Do not create a new database path when checking persistence across a restart.
+If using a new PowerShell terminal, set the environment variables again:
+
+```powershell
+$env:CRM_ENABLE_LIVE_AI="false"
+$env:NODE_ENV="development"
+$env:PORT="3194"
+$env:CRM_DATABASE_PATH=Join-Path (Get-Location) "backend\db\local-review.sqlite"
+npm.cmd start
+```
+
+Then open:
+
+`http://127.0.0.1:3194/`
+
+Using the same database path allows previously saved campaign and lead records to remain available after the server restart.
 
 ## Run Automated Tests
 
-From the repository root:
+Open a separate terminal at the repository root and run:
 
 ```powershell
 $env:CRM_TEST_EXECUTOR="Mohammed Abdul Imran - developer verification"
@@ -62,32 +101,39 @@ npm.cmd test
 
 The automated test runner uses its own temporary test database/server and does not require the manual verification database.
 
+Developer verification results must be recorded separately from Sushan's independent QA results.
+
 ## Service Availability
 
 When the backend is running, the CRM should show its connected/available state.
 
 If the backend is stopped or unavailable, connected campaign and lead operations will not work and the interface should indicate that the service is unavailable.
 
+Double-clicking or directly opening `index.html` is not the connected startup method.
+
 ## Configuration
 
 Important environment variables:
 
-- `PORT` – local application port.
+- `PORT` – local application port. Port `3194` is used as the shared example but the port is configurable.
 - `CRM_DATABASE_PATH` – SQLite database location.
 - `CRM_ENABLE_LIVE_AI` – controls whether approved live AI configuration may be used.
 - `NODE_ENV` – runtime environment.
+- `CRM_TEST_EXECUTOR` – identifies the developer running the automated verification.
 
 Example local development configuration:
 
 ```powershell
-$env:CRM_DATABASE_PATH="C:\temp\divinenet-review.sqlite"
 $env:CRM_ENABLE_LIVE_AI="false"
 $env:NODE_ENV="development"
-$env:PORT="3193"
+$env:PORT="3194"
+$env:CRM_DATABASE_PATH=Join-Path (Get-Location) "backend\db\local-review.sqlite"
 npm.cmd start
 ```
 
 Do not commit API keys, passwords, tokens, provider credentials, or `.env` secrets to the repository.
+
+Live AI remains disabled unless approved provider configuration and access are supplied and verified.
 
 ## Current Integration Limitations
 
