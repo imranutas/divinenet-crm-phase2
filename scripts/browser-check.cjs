@@ -84,6 +84,46 @@ async function main() {
       lead = (await records('leads'))[0];
       assert.equal(lead.campaignId, campaign.id); assert.equal(lead.stage, 'New');
     });
+    await check('Campaign notifications clear obsolete messages and navigation errors', async () => {
+  await page.locator('a[data-route="campaigns"]').click();
+  await page.locator('#primary-action').click();
+
+  await page.locator('#field-campaignName').fill('Synthetic disposable campaign');
+  await page.locator('#field-prompt').fill('Synthetic notification cleanup test');
+
+  await page.locator('#field-budget').fill('1000');
+  await page.locator('#field-startDate').fill('2026-09-18');
+  await page.locator('#field-endDate').fill('2026-09-25');
+
+  await page.locator('#save-record').click();
+  await page.locator('#editor').waitFor({ state: 'hidden' });
+
+  const disposableRow = page.getByRole('row').filter({
+    hasText: 'Synthetic disposable campaign'
+  });
+
+  await disposableRow.getByRole('button', { name: 'Delete' }).click();
+
+  await page.locator('#notice').waitFor({ state: 'visible' });
+  assert.match(await page.locator('#notice').innerText(), /Campaign deleted/i);
+
+  const linkedRow = page.getByRole('row').filter({
+    hasText: campaign.campaignName
+  });
+
+  await linkedRow.getByRole('button', { name: 'Delete' }).click();
+
+  assert.equal(await page.locator('#notice').isHidden(), true);
+  await page.locator('#global-error').waitFor({ state: 'visible' });
+  assert.match(
+    await page.locator('#global-error').innerText(),
+    /linked/i
+  );
+
+  await page.locator('a[data-route="studio"]').click();
+
+  assert.equal(await page.locator('#global-error').isHidden(), true);
+});
     await check('Saved context resets cleanly and hides unused custom-name fields', async () => {
       await page.locator('a[data-route="campaigns"]').click(); await page.locator('#primary-action').click();
       await page.locator('#field-clientId').selectOption('__new__');

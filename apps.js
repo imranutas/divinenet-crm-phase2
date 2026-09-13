@@ -155,11 +155,15 @@ function renderCampaigns() {
 }
 async function removeCampaign(c,btn) {
   if(!confirm('Delete "'+c.campaignName+'"? Linked leads or assets prevent deletion.'))return;
-  btn.disabled=true;
+ message("notice","");
+message("global-error","");
+ btn.disabled=true;
   try {await api("/campaigns/"+encodeURIComponent(c.id),{method:"DELETE"});message("notice","Campaign deleted.");await refresh();}
   catch(error){message("global-error",error.message);btn.disabled=false;}
 }
 function dialogSetup(title,intro) {
+  message("notice","");
+message("global-error","");
   editing=null;saving=false;$("record-form").reset();$("form-fields").replaceChildren();
   $("editor-title").textContent=title;$("form-intro").textContent=intro;message("form-error","");
   $("save-record").hidden=false;$("save-record").disabled=false;$("cancel-editor").textContent="Cancel";
@@ -395,5 +399,5 @@ function renderModel(){
 $("close-editor").addEventListener("click",closeEditor);$("cancel-editor").addEventListener("click",closeEditor);
 $("editor").addEventListener("cancel",event=>{if(saving)event.preventDefault();});
 $("refresh").addEventListener("click",refresh);
-window.addEventListener("hashchange",()=>{if(location.hash==="#main")return;message("notice","");render();});
+window.addEventListener("hashchange",()=>{if(location.hash==="#main")return;message("notice","");message("global-error","");render();});
 refresh();
