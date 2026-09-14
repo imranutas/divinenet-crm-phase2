@@ -6,6 +6,7 @@ const channels = ["Facebook","Instagram","LinkedIn","Website"];
 const statuses = ["Draft","Active","Paused","Completed"];
 const stages = ["New","Contacted","Qualified"];
 let loadVersion=0, editing=null, saving=false, objectUrl=null;
+let connectionError="";
 
 function node(tag, text, className) {
   const element=document.createElement(tag);
@@ -23,6 +24,11 @@ function badge(value) {
   return node("span",value,"badge "+cls);
 }
 function message(id,text) {$(id).textContent=text||"";$(id).hidden=!text;}
+function clearActionMessages() {
+  message("notice", "");
+  // Keep a connection failure visible until a successful data refresh.
+  message("global-error", connectionError);
+}
 async function api(path, {method="GET",body,timeout=15000}={}) {
   let response;
   try {
@@ -79,11 +85,14 @@ async function refresh() {
     const [campaigns,leads,clients,brands,analytics,ai]=await Promise.all(["/campaigns","/leads","/clients","/brands","/analytics/summary","/ai/status"].map(path=>api(path)));
     if(version!==loadVersion)return;
     Object.assign(state,{campaigns,leads,clients,brands,analytics,ai,ready:true});
+    connectionError="";
     $("connection").textContent="● Database connected";$("connection").className="online";message("global-error","");
     render();
   } catch(error) {
     if(version!==loadVersion)return;
     state.ready=false;$("connection").textContent="Backend unavailable";$("connection").className="";
+    connectionError=error.message;
+message("notice", "");
     message("global-error",error.message);$("view").replaceChildren(empty("Connection needs attention","No sample data or browser-only saves are substituted. Select Refresh data after the server is available."));
     $("primary-action").disabled=true;
   } finally {if(version===loadVersion){$("refresh").disabled=false;$("view").setAttribute("aria-busy","false");}}
@@ -155,15 +164,13 @@ function renderCampaigns() {
 }
 async function removeCampaign(c,btn) {
   if(!confirm('Delete "'+c.campaignName+'"? Linked leads or assets prevent deletion.'))return;
- message("notice","");
-message("global-error","");
+ clearActionMessages();
  btn.disabled=true;
   try {await api("/campaigns/"+encodeURIComponent(c.id),{method:"DELETE"});message("notice","Campaign deleted.");await refresh();}
   catch(error){message("global-error",error.message);btn.disabled=false;}
 }
 function dialogSetup(title,intro) {
-  message("notice","");
-message("global-error","");
+  clearActionMessages();
   editing=null;saving=false;$("record-form").reset();$("form-fields").replaceChildren();
   $("editor-title").textContent=title;$("form-intro").textContent=intro;message("form-error","");
   $("save-record").hidden=false;$("save-record").disabled=false;$("cancel-editor").textContent="Cancel";
@@ -398,6 +405,14 @@ function renderModel(){
 }
 $("close-editor").addEventListener("click",closeEditor);$("cancel-editor").addEventListener("click",closeEditor);
 $("editor").addEventListener("cancel",event=>{if(saving)event.preventDefault();});
-$("refresh").addEventListener("click",refresh);
-window.addEventListener("hashchange",()=>{if(location.hash==="#main")return;message("notice","");message("global-error","");render();});
+$("refresh").addEventListener("click",()=>{
+  clearActionMessages();
+  refresh();
+});
+
+window.addEventListener("hashchange",()=>{
+  if(location.hash==="#main")return;
+  clearActionMessages();
+  render();
+});
 refresh();
