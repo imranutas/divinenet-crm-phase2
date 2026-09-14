@@ -7,7 +7,8 @@
     "start": "node backend/server.js",
     "test:api": "npm --prefix backend test",
     "test:browser": "node scripts/browser-check.cjs",
-    "test": "npm run test:api && npm run test:browser"
+    "test:notifications": "node scripts/notification-check.cjs",
+    "test": "npm run test:api && npm run test:browser && npm run test:notifications"
   },
   "devDependencies": { "playwright": "1.62.1" }
 }
