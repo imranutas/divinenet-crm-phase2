@@ -1,0 +1,15 @@
+**/node_modules/
+.env
+.env.*
+!.env.example
+*.sqlite
+*.sqlite-*
+*.db
+*.db-*
+*.pem
+*.key
+*.log
+test-evidence/
+evidence/
+playwright-report/
+test-results/
