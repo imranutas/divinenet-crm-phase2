@@ -8,7 +8,8 @@
     "test:api": "npm --prefix backend test",
     "test:browser": "node scripts/browser-check.cjs",
     "test:notifications": "node scripts/notification-check.cjs",
-    "test": "npm run test:api && npm run test:browser && npm run test:notifications"
+    "test:banners": "node scripts/campaign-banner-check.cjs",
+    "test": "npm run test:api && npm run test:browser && npm run test:notifications && npm run test:banners"
   },
   "devDependencies": { "playwright": "1.62.1" }
 }

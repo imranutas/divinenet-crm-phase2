@@ -96,7 +96,7 @@ async function main() {
       assert.equal(await page.locator('#field-channel').inputValue(), 'Website');
       await page.locator('#field-startDate').fill('2026-09-15'); await page.locator('#field-endDate').fill('2026-09-20');
       await page.locator('#field-endDate').fill('');
-      assert.match(await page.locator('#form-fields .callout').innerText(), /Select dates/);
+      assert.match(await page.locator('#campaign-schedule-note').innerText(), /Select dates/);
       await page.locator('#cancel-editor').click();
     });
     await check('An unsuccessful save retains input without adding a record', async () => {

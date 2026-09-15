@@ -7,6 +7,14 @@ dialog{width:min(760px,calc(100% - 28px));max-height:90vh;border:1px solid var(-
 @media(max-width:1100px){.workspace{grid-template-columns:205px minmax(0,1fr)}.sidebar{padding:26px 16px}.topbar{padding:0 25px}main{padding:28px 25px}.overview-grid,.studio-grid{grid-template-columns:1fr}.metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.pipeline{gap:10px}.pipeline-column{padding:10px}.model-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:720px){.workspace{display:block}.sidebar{position:static;height:auto;padding:18px;gap:16px}.brand{font-size:23px}.brand-mark{width:36px;height:36px;font-size:27px}.nav-label,.sidebar-note{display:none}.sidebar nav{display:flex;overflow:auto;gap:6px;margin:0;padding-bottom:4px}.sidebar nav a{white-space:nowrap;padding:12px 10px;font-size:12px}.sidebar nav a span{display:none}.topbar{height:auto;min-height:58px;padding:12px 18px;flex-wrap:wrap;gap:8px}.topbar>span:first-child{width:100%}.topbar button{margin-left:auto}main{padding:25px 18px}.page-head{display:block;margin-bottom:24px}.page-head>.primary{margin-top:18px}.metric{padding:18px}.metric-value{font-size:29px}.metrics{gap:10px}.panel{padding:18px}.pipeline,.model-grid{grid-template-columns:1fr}.filters{align-items:stretch;flex-direction:column}.filters label{max-width:none}.form-grid,.detail-grid{grid-template-columns:1fr}.full{grid-column:auto}dialog{padding:20px}.dialog-actions{flex-wrap:wrap}.dialog-actions span{width:100%}footer{display:block;line-height:1.8}footer span{display:block}.panel-head{align-items:flex-start}.page-head h1{font-size:29px}}
 @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}}
+/* Campaign details and creative share one keyboard-accessible editor. */
+dialog.campaign-editor{width:min(920px,calc(100% - 28px))}
+.campaign-banner{min-width:0;border:1px solid var(--line);border-radius:14px;background:#f7faf8;padding:22px;display:grid;gap:16px}
+.campaign-banner p{margin:0;overflow-wrap:anywhere}.campaign-banner h3{margin:0}
+.campaign-banner .banner-actions{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+#banner-preview{display:block;width:100%;max-height:380px;object-fit:contain;background:#e9efec;border-radius:10px}
+#saved-campaign-banners{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
+@media(max-width:720px){.campaign-banner{padding:16px}.campaign-banner .banner-actions button{width:100%}#saved-campaign-banners{grid-template-columns:1fr}}
 /* Small screens use campaign cards; amounts and actions do not need sideways scrolling. */
 @media(max-width:720px){
   .sidebar nav{flex-wrap:wrap;overflow:visible}
@@ -19,4 +27,32 @@ dialog{width:min(760px,calc(100% - 28px));max-height:90vh;border:1px solid var(-
   .table-wrap td:first-child,.table-wrap td[data-label=Actions]{grid-column:1/-1}
   .table-wrap td::before{content:attr(data-label);display:block;font-size:9px;letter-spacing:.6px;text-transform:uppercase;color:var(--muted);margin-bottom:7px}
   .table-wrap td:first-child strong{max-width:none;font-size:14px}
+}
+
+/* Selected campaign workspace: shared form, real fields, details beside creative. */
+dialog.campaign-editor{width:min(1200px,calc(100% - 32px));background:var(--canvas)}
+.campaign-editor #form-fields{grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);gap:20px;align-items:start}
+.campaign-details,.campaign-editor .campaign-banner{min-width:0;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:22px}
+.campaign-details{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px;align-content:start}
+.campaign-details h3{margin:0;font-size:19px;font-weight:600}
+.campaign-details label{min-width:0;align-content:start}
+.campaign-details label:has(#field-budget){grid-column:1/-1}
+.campaign-editor input,.campaign-editor select,.campaign-editor textarea{min-width:0}
+.campaign-editor .campaign-banner{align-content:start}
+.campaign-editor .banner-actions{justify-content:space-between}
+.campaign-editor .banner-review-actions{justify-content:flex-start}
+.campaign-editor #saved-campaign-banners{grid-template-columns:1fr}
+.campaign-editor{scroll-padding-bottom:140px}
+.campaign-editor .dialog-actions{position:sticky;bottom:-28px;z-index:1;align-items:center;background:var(--canvas);padding:16px 0;margin-top:24px}
+@media(max-width:900px){
+  .campaign-editor #form-fields{grid-template-columns:minmax(0,1fr)}
+}
+@media(max-width:720px){
+  dialog.campaign-editor{width:calc(100% - 16px);padding:16px}
+  .campaign-editor #form-fields{gap:16px}
+  .campaign-details{grid-template-columns:minmax(0,1fr);gap:16px}
+  .campaign-details,.campaign-editor .campaign-banner{padding:16px}
+  .campaign-editor input,.campaign-editor select,.campaign-editor textarea{font-size:16px}
+  .campaign-editor .dialog-actions button{flex:1}
+  .campaign-editor .dialog-actions{bottom:-16px}
 }
