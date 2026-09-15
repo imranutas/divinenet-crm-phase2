@@ -34,10 +34,11 @@ async function api(path, {method="GET",body,timeout=15000}={}) {
   try {
     response=await fetch("/api"+path,{method,headers:body===undefined?{}:{"Content-Type":"application/json"},body:body===undefined?undefined:JSON.stringify(body),signal:AbortSignal.timeout(timeout),cache:"no-store"});
   } catch {
-    throw new Error(method==="GET"?"Cannot reach the backend. Start the review server, then refresh.":"The save could not be confirmed. Your input is retained. Refresh the records before retrying to avoid duplicates.");
+    const error=new Error(method==="GET"?"Cannot reach the backend. Start the review server, then refresh.":"The request could not be confirmed. Check the saved records before repeating this action; no success is being assumed.");
+    error.uncertain=method!=="GET";throw error;
   }
   let result;
-  try {result=await response.json();} catch {throw new Error("The server returned an unexpected response. No success has been confirmed.");}
+  try {result=await response.json();} catch {const error=new Error("The server returned an unexpected response. No success has been confirmed.");error.uncertain=method!=="GET";throw error;}
   if(!response.ok || result.success===false) throw new Error(result.message||"The request could not be completed.");
   return result.data;
 }
@@ -147,7 +148,7 @@ function renderDashboard() {
   const stack=node("div",null,"stack"),pipeline=panel("Lead snapshot");
   for(const stage of stages) {const line=node("div",null,"summary-line");line.append(badge(stage),node("strong",state.leads.filter(l=>l.stage===stage).length));pipeline.append(line);}
   pipeline.append(node("p","Counts reflect all currently stored records. Customer conversion and performance targets are not yet configured.","muted"));
-  const studio=panel("Creative, with a review step");studio.append(node("p",state.ai.message,"muted"),link("Open creative studio →","#studio"));
+  const studio=panel("Your brief and banner, together");studio.append(node("p","Create or edit a campaign to generate, review and save its banner in the same form. "+state.ai.message,"muted"),link("Open campaigns →","#campaigns"));
   stack.append(pipeline,studio);grid.append(recent,stack);$("view").append(metrics,grid);
 }
 function renderCampaigns() {
@@ -171,19 +172,21 @@ async function removeCampaign(c,btn) {
 }
 function dialogSetup(title,intro) {
   clearActionMessages();
-  editing=null;saving=false;$("record-form").reset();$("form-fields").replaceChildren();
+  editing=null;saving=false;$("editor").classList.remove("campaign-editor");$("record-form").reset();$("form-fields").replaceChildren();$("form-fields").inert=false;
   $("editor-title").textContent=title;$("form-intro").textContent=intro;message("form-error","");
   $("save-record").hidden=false;$("save-record").disabled=false;$("cancel-editor").textContent="Cancel";
+  $("close-editor").disabled=false;$("cancel-editor").disabled=false;
   $("save-state").textContent="Changes are saved when you select Save.";
 }
 function presentDialog(){if(!$("editor").open)$("editor").showModal();}
 function closeEditor(){
-  if(saving)return;
+  if(saving||editing?.banner?.busy)return;
+  if(editing?.banner?.draft)void api("/banner-drafts/"+encodeURIComponent(editing.banner.draft.id),{method:"DELETE"}).catch(()=>{});
   $("editor").close();editing=null;
 }
 function openCampaign(c=null) {
   dialogSetup(c?"Edit campaign":"Create campaign","Use a saved client or brand, or add a reusable name. An existing lead can supply its campaign brief without copying personal contact details.");
-  editing={kind:"campaign",id:c?.id};const fields=$("form-fields");
+  editing={kind:"campaign",id:c?.id,requestId:crypto.randomUUID()};$("editor").classList.add("campaign-editor");const fields=$("form-fields");
   const inputs={};
   function add(name,label,options={}) {const item=field(name,label,{value:c?.[name]??"",...options});fields.append(item.label);inputs[name]=item.input;return item;}
   if(!c) {
@@ -226,7 +229,7 @@ function openCampaign(c=null) {
   });
   budget.input.addEventListener("input",()=>budget.input.setCustomValidity(""));
   add("startDate","Start date",{type:"date",required:true});add("endDate","End date",{type:"date",required:true});
-  const schedule=node("p","Select dates to check for overlapping active campaigns.","callout full");fields.append(schedule);
+  const schedule=node("p","Select dates to check for overlapping active campaigns.","callout full");schedule.id="campaign-schedule-note";fields.append(schedule);
   function overlaps(){
     inputs.endDate.min=inputs.startDate.value;
     if(!inputs.startDate.value||!inputs.endDate.value){
@@ -237,7 +240,96 @@ function openCampaign(c=null) {
     schedule.textContent=matches.length?matches.length+" active campaign(s) overlap these dates: "+matches.map(x=>x.campaignName).join(", ")+". This is a date check, not an AI scheduling recommendation.":"No other active campaigns overlap these dates. This check does not predict campaign performance.";
   }
   inputs.startDate.addEventListener("change",overlaps);inputs.endDate.addEventListener("change",overlaps);overlaps();
+  addCampaignBanner(c,inputs.prompt);
   $("save-record").textContent="Save campaign";presentDialog();
+}
+
+// Unsaved images stay separate from campaign records until an explicit reviewed save.
+function addCampaignBanner(c,briefInput) {
+  const owner=editing,banner={draft:null,busy:false};owner.banner=banner;
+  const section=node("section",null,"campaign-banner full");section.id="banner-section";
+  section.append(node("p","OPTIONAL CAMPAIGN CREATIVE","eyebrow"),node("h3","Campaign banner"),node("p","1. Describe the image. 2. Generate and review it. 3. Save the campaign to keep the approved banner.","muted"));
+  const provider=node("p",state.ai.message,"callout "+(state.ai.configured?"":"warning"));
+  const promptLabel=node("label","Image prompt"),prompt=node("textarea");prompt.id="banner-prompt";prompt.maxLength=4000;
+  promptLabel.append(prompt,node("small","Describe the artwork and leave space for your message. Do not include personal lead or customer details. AI-generated lettering can be inaccurate."));
+  const useBrief=button("Use campaign brief",()=>{prompt.value=briefInput.value;invalidateDraft("Campaign brief copied. Review it before generating.");});
+  const consent=node("label",null,"checkbox"),consentCheck=node("input");consentCheck.type="checkbox";consentCheck.id="banner-consent";
+  consent.append(consentCheck,node("span","I have reviewed this prompt and have permission to process it with the configured image service."));
+  const generate=button("Generate banner",generateDraft,"secondary");generate.id="generate-banner";generate.disabled=!state.ai.configured||state.ai.generationBlocked;
+  const feedback=node("p",null,"callout");feedback.id="banner-message";feedback.setAttribute("role","status");feedback.setAttribute("aria-live","polite");feedback.hidden=true;
+  const preview=node("img");preview.id="banner-preview";preview.alt="Unsaved campaign banner draft for review";preview.hidden=true;
+  const review=node("label",null,"checkbox"),reviewCheck=node("input");reviewCheck.type="checkbox";reviewCheck.id="banner-review";
+  review.append(reviewCheck,node("span","I checked the image, wording, rights and suitability for this campaign."));review.hidden=true;
+  const approve=button("Approve banner",approveDraft);approve.id="approve-banner";approve.hidden=true;approve.disabled=true;
+  const discard=button("Discard banner draft",()=>invalidateDraft("Banner removed from this unsaved campaign. You can save without a banner."),"quiet");discard.id="discard-banner";discard.hidden=true;
+  const actions=node("div",null,"banner-actions");actions.append(generate,useBrief,approve,discard);
+  section.append(provider,promptLabel,consent,actions,feedback,preview,review,node("p","Unsaved banners expire after 30 minutes and are lost if the server restarts. Closing this form discards the unsaved banner. Saved campaign assets stay in the database. Nothing is published automatically.","muted"));
+  $("form-fields").append(section);
+  function say(text,warning=false){feedback.textContent=text;feedback.className="callout"+(warning?" warning":"");feedback.hidden=!text;}
+  function setBusy(value){
+    banner.busy=value;section.setAttribute("aria-busy",String(value));
+    prompt.disabled=value;consentCheck.disabled=value;useBrief.disabled=value;discard.disabled=value;reviewCheck.disabled=value;
+    generate.disabled=value||!state.ai.configured||state.ai.generationBlocked;approve.disabled=value||!reviewCheck.checked||banner.draft?.status==="Approved";
+    $("save-record").disabled=value;$("close-editor").disabled=value;$("cancel-editor").disabled=value;
+  }
+  function invalidateDraft(text){
+    if(banner.busy)return;
+    if(banner.draft)void api("/banner-drafts/"+encodeURIComponent(banner.draft.id),{method:"DELETE"}).catch(()=>{});
+    banner.draft=null;reviewCheck.checked=false;review.hidden=true;approve.hidden=true;discard.hidden=true;preview.hidden=true;preview.removeAttribute("src");
+    consentCheck.checked=false;say(text);
+  }
+  prompt.addEventListener("input",()=>{if(banner.draft)invalidateDraft("Prompt changed. Generate and review a new banner before attaching it.");else consentCheck.checked=false;});
+  reviewCheck.addEventListener("change",()=>approve.disabled=!reviewCheck.checked||banner.busy||banner.draft?.status==="Approved");
+  async function generateDraft(){
+    if(banner.busy||!state.ai.configured||state.ai.generationBlocked)return;
+    if(!prompt.value.trim()){say("Enter an image prompt first.",true);prompt.focus();return;}
+    if(!consentCheck.checked){say("Review the prompt and select its permission checkbox first.",true);consentCheck.focus();return;}
+    const previousDraft=banner.draft;
+    setBusy(true);generate.textContent="Generating banner…";say("Generating an unsaved image. Keep this form open; the campaign has not been created.");
+    try{
+      const draft=await api("/banner-drafts/generate",{method:"POST",body:{prompt:prompt.value.trim(),consentToSend:true},timeout:195000});
+      if(editing!==owner)return;
+      if(previousDraft)void api("/banner-drafts/"+encodeURIComponent(previousDraft.id),{method:"DELETE"}).catch(()=>{});
+      banner.draft=draft;reviewCheck.checked=false;preview.src=draft.imageUrl;preview.hidden=false;review.hidden=false;approve.hidden=false;discard.hidden=false;
+      say("Draft ready — "+draft.provider+" / "+draft.model+". Review and approve it, then save the campaign. This draft is not yet attached to a campaign.");
+    }catch(error){
+      try{state.ai=await api("/ai/status",{timeout:3000});provider.textContent=state.ai.message;}catch{}
+      say((error.uncertain?"Generation could not be confirmed. The local service may still be working; wait before trying again. Your campaign fields are retained.":error.message)+(state.ai.generationBlocked?" The image service needs an operator check before another generation.":"")+(previousDraft?" Your previous banner is still selected.":" No banner is selected."),true);
+    }
+    finally{if(editing===owner){setBusy(false);generate.textContent="Generate banner";}}
+  }
+  async function approveDraft(){
+    if(banner.busy||!banner.draft||!reviewCheck.checked)return;
+    setBusy(true);
+    try{
+      banner.draft=await api("/banner-drafts/"+encodeURIComponent(banner.draft.id)+"/approve",{method:"POST",body:{reviewed:true}});
+      say("Banner approved. Select Save campaign to store the campaign and banner together.");
+    }catch(error){say(error.message,true);}
+    finally{setBusy(false);}
+  }
+  if(c){
+    const existing=node("div",null,"section-gap");existing.id="saved-campaign-banners";section.append(node("h3","Saved campaign banners"),existing);
+    existing.append(node("p","Loading saved banners…","muted"));
+    api("/campaigns/"+encodeURIComponent(c.id)+"/assets").then(assets=>{
+      if(editing!==owner)return;
+      existing.replaceChildren();
+      if(!assets.length){existing.append(node("p","No saved banner yet. Generate one above without leaving this campaign.","muted"));return;}
+      for(const asset of assets){
+        const card=node("article",null,"asset-card"),image=node("img");image.src=asset.imageUrl;image.alt="Saved banner for "+c.campaignName;image.loading="lazy";
+        card.append(image,badge(asset.status),node("p",asset.prompt),node("p",asset.provider+" · "+asset.model,"muted"));
+        if(asset.status==="Approved")card.append(link("Download approved banner",asset.downloadUrl));
+        else{
+          const label=node("label",null,"checkbox"),check=node("input");check.type="checkbox";label.append(check,node("span","I reviewed this saved image, wording, rights and suitability."));
+          const approval=button("Approve saved banner",async()=>{
+            if(!check.checked)return;approval.disabled=true;
+            try{await api("/assets/"+encodeURIComponent(asset.id)+"/approve",{method:"POST",body:{reviewed:true}});label.remove();approval.replaceWith(link("Download approved banner","/api/assets/"+encodeURIComponent(asset.id)+"/download"));card.querySelector(".badge").replaceWith(badge("Approved"));}
+            catch(error){say(error.message,true);approval.disabled=false;}
+          });approval.disabled=true;check.addEventListener("change",()=>approval.disabled=!check.checked);card.append(label,approval);
+        }
+        existing.append(card);
+      }
+    }).catch(error=>{if(editing===owner)existing.replaceChildren(node("p",error.message,"callout warning"));});
+  }
 }
 function viewCampaign(c) {
   dialogSetup(c.campaignName,"Campaign record · "+c.id);$("save-record").hidden=true;$("cancel-editor").textContent="Close";$("save-state").textContent="Read-only view.";
@@ -245,10 +337,11 @@ function viewCampaign(c) {
   for(const [title,value] of [["Client",c.client||"Not selected"],["Brand",c.brand||"Not selected"],["Brief",c.prompt],["Objective",c.objective||"Not set"],["Audience",c.targetAudience||"Not set"],["Channel",c.channel],["Dates",displayDate(c.startDate)+" – "+displayDate(c.endDate)],["Budget",money(c.budget)],["Status",c.status],["Linked leads",state.leads.filter(l=>l.campaignId===c.id).length]]) {
     const part=node("div");part.append(node("dt",title),node("dd",value));details.append(part);
   }
-  const studio=button("Review campaign creative",()=>{state.studioCampaign=c.id;closeEditor();location.hash="studio";});
+  const studio=button("Edit campaign and banner",()=>openCampaign(c));
   $("form-fields").append(details,studio);presentDialog();
 }
 function openLead(lead=null) {
+  clearActionMessages();
   if(!state.campaigns.length){message("global-error","Create a campaign before adding a linked lead.");return;}
   dialogSetup(lead?"Edit lead":"Add lead","Use synthetic records for this review. Consent is recorded as supplied; it is not inferred from entering an email.");
   editing={kind:"lead",id:lead?.id};
@@ -263,7 +356,8 @@ function openLead(lead=null) {
   $("save-record").textContent="Save lead";presentDialog();
 }
 $("record-form").addEventListener("submit",async event=>{
-  event.preventDefault();if(!editing||saving)return;
+  event.preventDefault();if(!editing||saving||editing.banner?.busy)return;
+  clearActionMessages();
   const data=Object.fromEntries(new FormData(event.currentTarget));const current={...editing};
   if(current.kind==="campaign"){
     data.budget=parseBudget(data.budget);
@@ -273,15 +367,29 @@ $("record-form").addEventListener("submit",async event=>{
       else {data[kind+"Id"]=data[kind+"Id"]||null;delete data[kind];}
     }
     delete data.sourceLead;
+    if(current.banner?.draft){
+      if(current.banner.draft.status!=="Approved"){message("form-error","Review and approve the banner before saving, or discard it to save the campaign without a banner.");return;}
+      data.bannerDraftId=current.banner.draft.id;
+    }
+    const payload=JSON.stringify(data);
+    if(editing.uncertain&&editing.lastPayload!==payload){message("form-error","The previous save is unconfirmed. Restore the previous values and retry that same save, or check the campaign list before starting a new record. Do not create a duplicate.");return;}
+    if(editing.lastPayload&&editing.lastPayload!==payload)editing.requestId=crypto.randomUUID();
+    editing.lastPayload=payload;data.clientRequestId=editing.requestId;
   }
   saving=true;$("save-record").disabled=true;$("form-fields").inert=true;$("save-state").textContent="Saving to the database…";message("form-error","");
   try {
     const path=(current.kind==="campaign"?"/campaigns":"/leads")+(current.id?"/"+encodeURIComponent(current.id):"");
     const saved=await api(path,{method:current.id?"PUT":"POST",body:data});
-    saving=false;$("form-fields").inert=false;closeEditor();
+    saving=false;$("form-fields").inert=false;if(editing?.banner)editing.banner.draft=null;closeEditor();
     message("notice",(current.kind==="campaign"?"Campaign ":"Lead ")+saved.id+" saved to the database.");await refresh();
-  } catch(error){message("form-error",error.message);$("save-state").textContent="Save not confirmed. Your input is retained.";}
-  finally{saving=false;$("form-fields").inert=false;$("save-record").disabled=false;}
+  } catch(error){
+    if(editing)editing.uncertain=current.kind==="campaign"&&Boolean(error.uncertain);
+    const recoverable=Boolean(editing?.uncertain);
+    message("form-error",recoverable?"The campaign save could not be confirmed. Values are temporarily locked. Select Retry campaign save to recover the same request without creating a duplicate, or close and check the campaign list.":error.message);
+    $("save-state").textContent="Save not confirmed. Your input is retained.";
+    if(recoverable)$("save-record").textContent="Retry campaign save";
+  }
+  finally{saving=false;$("form-fields").inert=Boolean(editing?.uncertain);$("save-record").disabled=false;}
 });
 function renderLeads() {
   const note=node("div","Development pipeline: New → Contacted → Qualified. Stage transitions are recorded. Scoring policy and Phase 1 conversion are not approved or connected; no lead is marked Converted.","callout warning");$("view").append(note);
@@ -307,11 +415,13 @@ function renderLeads() {
 }
 async function advanceLead(lead,stage,btn){
   if(!confirm("Move "+lead.name+" to "+stage+"? This development transition is recorded in history."))return;
+  clearActionMessages();
   btn.disabled=true;
   try{await api("/leads/"+encodeURIComponent(lead.id)+"/stage",{method:"PATCH",body:{stage}});message("notice","Lead stage updated and recorded.");await refresh();}
   catch(error){message("global-error",error.message);btn.disabled=false;}
 }
 async function viewHistory(lead){
+  clearActionMessages();
   try{
     const history=await api("/leads/"+encodeURIComponent(lead.id)+"/history");
     dialogSetup("Stage history","Recorded transitions for "+lead.id);$("save-record").hidden=true;$("cancel-editor").textContent="Close";$("save-state").textContent="Read-only history.";
@@ -327,8 +437,8 @@ function renderStudio(){
   const prompt=field("asset-prompt","Image prompt",{value:state.studioPrompt,type:"textarea",required:true,help:"Describe the image, style and message. Do not include personal lead or customer information."});
   const provider=node("div",state.ai.message,"callout "+(state.ai.configured?"":"warning"));
   const consent=node("label",null,"checkbox"),check=node("input");check.type="checkbox";check.required=true;check.id="send-consent";
-  consent.append(check,node("span","I reviewed this brief and have permission to send it to the configured AI provider. Generation may incur a charge."));
-  const generate=node("button","Generate image","primary");generate.type="submit";generate.disabled=!state.ai.configured;
+  consent.append(check,node("span","I reviewed this brief and have permission to process it with the configured image service."));
+  const generate=node("button","Generate image","primary");generate.type="submit";generate.disabled=!state.ai.configured||state.ai.generationBlocked;
   const error=node("p",null,"callout warning");error.hidden=true;error.setAttribute("role","alert");
   const result=node("div");assets.append(result);let assetVersion=0;
   async function loadAssets(){
@@ -349,6 +459,7 @@ function renderStudio(){
           review.append(reviewCheck,node("span","I reviewed the image, text, rights and suitability."));
           const approve=button("Approve for export",async()=>{
             if(!reviewCheck.checked)return;approve.disabled=true;
+            clearActionMessages();error.hidden=true;
             try{await api("/assets/"+encodeURIComponent(asset.id)+"/approve",{method:"POST",body:{reviewed:true}});await loadAssets();}
             catch(e){error.textContent=e.message;error.hidden=false;approve.disabled=false;}
           });
@@ -363,19 +474,21 @@ function renderStudio(){
   campaign.input.addEventListener("change",loadAssets);
   prompt.input.addEventListener("input",()=>state.studioPrompt=prompt.input.value);
   form.addEventListener("submit",async event=>{
+    clearActionMessages();
     event.preventDefault();generate.disabled=true;campaign.input.disabled=true;prompt.input.disabled=true;generate.textContent="Generating…";error.hidden=true;
     const id=campaign.input.value;
     try{
       await api("/campaigns/"+encodeURIComponent(id)+"/assets/generate",{method:"POST",timeout:135000,body:{prompt:prompt.input.value,consentToSend:check.checked}});
       message("notice","Image draft saved. Review it before approval and export.");await loadAssets();
     }catch(e){error.textContent=e.message;error.hidden=false;}
-    finally{generate.disabled=!state.ai.configured;campaign.input.disabled=false;prompt.input.disabled=false;generate.textContent="Generate image";}
+    finally{generate.disabled=!state.ai.configured||state.ai.generationBlocked;campaign.input.disabled=false;prompt.input.disabled=false;generate.textContent="Generate image";}
   });
   form.append(provider,campaign.label,prompt.label,consent,generate,error);brief.append(form);
   const picker=field("local-file","Choose an image file",{type:"file",help:"PNG or JPEG, up to 5 MB. Local preview only: this file is not uploaded, generated by AI or saved as a campaign asset."});
   picker.input.accept="image/png,image/jpeg";
   const preview=node("img");preview.id="file-preview";preview.alt="Local file preview";preview.hidden=true;
   picker.input.addEventListener("change",()=>{
+    clearActionMessages();
     if(objectUrl){URL.revokeObjectURL(objectUrl);objectUrl=null;}preview.hidden=true;preview.removeAttribute("src");
     const file=picker.input.files[0];if(!file)return;
     if(!["image/png","image/jpeg"].includes(file.type)||file.size>5*1024*1024){error.textContent="Choose a PNG or JPEG no larger than 5 MB.";error.hidden=false;picker.input.value="";return;}
@@ -404,7 +517,7 @@ function renderModel(){
   $("view").append(p,definitions);
 }
 $("close-editor").addEventListener("click",closeEditor);$("cancel-editor").addEventListener("click",closeEditor);
-$("editor").addEventListener("cancel",event=>{if(saving)event.preventDefault();});
+$("editor").addEventListener("cancel",event=>{event.preventDefault();closeEditor();});
 $("refresh").addEventListener("click",()=>{
   clearActionMessages();
   refresh();
