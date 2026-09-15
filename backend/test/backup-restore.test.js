@@ -154,3 +154,164 @@ test('cold restore of an intentionally empty database adds no sample records and
   assert.equal(nextCampaign.id, 'CAM-002');
   assert.equal(nextLead.id, 'LEAD-002');
 });
+test('cold restore preserves approved banner and save-request receipt without duplicates', async t => {
+  const store = await isolatedStore(t);
+
+  // Synthetic PNG fixture used only for this regression test.
+  const pngBytes = Buffer.from(
+    'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGMQCVjwHwADhAIEWAExyQAAAABJRU5ErkJggg==',
+    'base64'
+  );
+
+  // Reopen the source database with a controlled test-double image provider.
+  await store.close();
+
+  const sourcePath = path.join(
+    fs.realpathSync(os.tmpdir()),
+    'unused'
+  );
+
+  // Use a separate isolated environment because banner generation requires
+  // the explicitly configured provider boundary.
+  const folder = fs.mkdtempSync(path.join(fs.realpathSync(os.tmpdir()), 'divinenet-banner-recovery-'));
+  const original = path.join(folder, 'original.sqlite');
+  const backup = path.join(folder, 'backup.sqlite');
+  const restored = path.join(folder, 'restored.sqlite');
+
+  let db;
+  let server;
+  let base;
+
+  async function open(filename) {
+    db = createDatabase(filename);
+    const { app } = createApp({
+      db,
+      imageConfig: {},
+      imageProvider: {
+        provider: 'test-double',
+        model: 'synthetic-fixture',
+        generate: async () => ({ bytes: pngBytes })
+      }
+    });
+
+    server = app.listen(0, '127.0.0.1');
+    await once(server, 'listening');
+    base = 'http://127.0.0.1:' + server.address().port;
+  }
+
+  async function close() {
+    if (server) {
+      await new Promise(resolve => server.close(resolve));
+      server = undefined;
+    }
+    if (db) {
+      db.close();
+      db = undefined;
+    }
+  }
+
+  async function request(route, method = 'GET', body, expectedStatus = 200) {
+    const response = await fetch(base + route, {
+      method,
+      headers: { 'Content-Type': 'application/json' },
+      body: body === undefined ? undefined : JSON.stringify(body)
+    });
+
+    const result = await response.json();
+    assert.equal(response.status, expectedStatus);
+    assert.equal(result.success, true);
+    return result.data;
+  }
+
+  t.after(async () => {
+    await close();
+    fs.rmSync(folder, { recursive: true, force: true });
+  });
+
+  await open(original);
+
+  const generated = await request('/api/banner-drafts/generate', 'POST', {
+    prompt: 'Synthetic recovery banner',
+    consentToSend: true
+  }, 201);
+
+  const approved = await request(
+    '/api/banner-drafts/' + generated.id + '/approve',
+    'POST',
+    { reviewed: true }
+  );
+
+  const clientRequestId = require('node:crypto').randomUUID();
+
+  const body = {
+    ...campaign,
+    bannerDraftId: approved.id,
+    clientRequestId
+  };
+
+  const saved = await request('/api/campaigns', 'POST', body, 201);
+  const assets = await request('/api/campaigns/' + saved.id + '/assets');
+
+  assert.equal(assets.length, 1);
+  assert.equal(assets[0].campaignId, saved.id);
+  assert.equal(assets[0].status, 'Approved');
+
+  const originalDownload = await fetch(base + assets[0].downloadUrl);
+  const originalBytes = Buffer.from(await originalDownload.arrayBuffer());
+  const originalHash = createHash('sha256').update(originalBytes).digest('hex');
+
+  assert.deepEqual(originalBytes, pngBytes);
+
+  // Cold backup: the original database must be closed before copying.
+  await close();
+  fs.copyFileSync(original, backup, fs.constants.COPYFILE_EXCL);
+
+  const originalHashBeforeRestore = createHash('sha256')
+    .update(fs.readFileSync(original))
+    .digest('hex');
+
+  const backupHashBeforeRestore = createHash('sha256')
+    .update(fs.readFileSync(backup))
+    .digest('hex');
+
+  // Restore into a different database file.
+  fs.copyFileSync(backup, restored, fs.constants.COPYFILE_EXCL);
+  await open(restored);
+
+  const restoredAssets = await request('/api/campaigns/' + saved.id + '/assets');
+
+  assert.equal(restoredAssets.length, 1);
+  assert.equal(restoredAssets[0].id, assets[0].id);
+  assert.equal(restoredAssets[0].campaignId, saved.id);
+  assert.equal(restoredAssets[0].status, 'Approved');
+
+  const restoredDownload = await fetch(base + restoredAssets[0].downloadUrl);
+  const restoredBytes = Buffer.from(await restoredDownload.arrayBuffer());
+  const restoredHash = createHash('sha256').update(restoredBytes).digest('hex');
+
+  assert.equal(restoredHash, originalHash);
+  assert.deepEqual(restoredBytes, pngBytes);
+
+  // The saved clientRequestId receipt must survive restoration.
+  // Identical retry must return the existing campaign, not create duplicates.
+  const retried = await request('/api/campaigns', 'POST', body);
+  assert.deepEqual(retried, saved);
+
+  assert.equal((await request('/api/campaigns')).length, 1);
+  assert.equal((await request('/api/campaigns/' + saved.id + '/assets')).length, 1);
+
+  assert.deepEqual(db.pragma('foreign_key_check'), []);
+  assert.deepEqual(db.pragma('integrity_check'), [{ integrity_check: 'ok' }]);
+
+  await close();
+
+  // Recovery must not alter either the original database or its cold backup.
+  assert.equal(
+    createHash('sha256').update(fs.readFileSync(original)).digest('hex'),
+    originalHashBeforeRestore
+  );
+  assert.equal(
+    createHash('sha256').update(fs.readFileSync(backup)).digest('hex'),
+    backupHashBeforeRestore
+  );
+});
