@@ -8,6 +8,7 @@ const { createDirectoryRepository } = require('./repositories/directoryRepositor
 const { validateStageTransition } = require('./services/lead-pipeline');
 const { createAnalyticsService } = require('./services/analytics-service');
 const { attachAssetRoutes } = require('./services/image-assets');
+const { createCampaignSave } = require('./services/campaign-save');
 const { validateCampaign, validateLead, parseBudget } = require('./validation');
 
 const fail = (res, status, message) => res.status(status).json({ success: false, message });
@@ -80,6 +81,10 @@ function createApp(options = {}) {
     next();
   });
 
+  const assets = attachAssetRoutes(app, { db, campaigns, imageProvider: options.imageProvider,
+    imageConfig: options.imageConfig, now: options.now });
+  const saveCampaign = createCampaignSave(db, campaigns, assets);
+
   for (const [route, list, create] of [
     ['clients', directory.listClients, directory.createClient],
     ['brands', directory.listBrands, directory.createBrand]
@@ -115,15 +120,15 @@ function createApp(options = {}) {
     const error = validateCampaign(body);
     if (error) return fail(res, 400, error);
     const now = new Date().toISOString();
-    const saved = campaigns.create({
+    const result = saveCampaign('create', body, () => campaigns.create({
       id: nextId('campaign', 'CAM-'), clientId: body.clientId, brandId: body.brandId,
       campaignName: String(body.campaignName).trim(), prompt: String(body.prompt).trim(),
       client: optionalText(body.client), brand: optionalText(body.brand),
       objective: optionalText(body.objective), targetAudience: optionalText(body.targetAudience),
       startDate: body.startDate, endDate: body.endDate, budget: parseBudget(body.budget),
       channel: body.channel, status: body.status || 'Draft', createdAt: now, updatedAt: now
-    });
-    data(res, toApiCampaign(saved), 201);
+    }));
+    data(res, toApiCampaign(result.saved), result.replayed ? 200 : 201);
   });
   app.put('/api/campaigns/:id', (req, res) => {
     const existing = campaigns.getById(req.params.id);
@@ -145,7 +150,8 @@ function createApp(options = {}) {
     for (const field of ['campaignName', 'prompt', 'client', 'brand', 'objective', 'targetAudience']) {
       if (typeof updated[field] === 'string') updated[field] = updated[field].trim();
     }
-    data(res, toApiCampaign(campaigns.update(req.params.id, updated)));
+    const result = saveCampaign('update:' + req.params.id, body, () => campaigns.update(req.params.id, updated));
+    data(res, toApiCampaign(result.saved));
   });
   app.delete('/api/campaigns/:id', (req, res) => {
     if (!campaigns.getById(req.params.id)) return fail(res, 404, 'Campaign not found');
@@ -220,7 +226,6 @@ function createApp(options = {}) {
     if (!leads.getById(req.params.id)) return fail(res, 404, 'Lead not found');
     data(res, db.prepare('SELECT * FROM lead_stage_history WHERE lead_id=? ORDER BY changed_at,id').all(req.params.id));
   });
-  attachAssetRoutes(app, { db, campaigns, imageProvider: options.imageProvider, imageConfig: options.imageConfig });
 
   // Expose only the chosen UI files, never the database or backend sources.
   const publicRoot = path.resolve(__dirname, '..');
@@ -240,6 +245,7 @@ function createApp(options = {}) {
     else if (error.code === 'SQLITE_CONSTRAINT_FOREIGNKEY') { status = 409; text = 'Record is linked to other records and cannot be deleted'; }
     else if (error.code === 'SQLITE_CONSTRAINT_UNIQUE') { status = 409; text = 'Record already exists'; }
     else if (error.status === 400 || error.statusCode === 400) { status = 400; text = error.message; }
+    else if ([409, 410].includes(error.status)) { status = error.status; text = error.message; }
     fail(res, status, text);
   });
   return { app, db };
