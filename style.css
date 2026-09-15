@@ -28,3 +28,31 @@ dialog.campaign-editor{width:min(920px,calc(100% - 28px))}
   .table-wrap td::before{content:attr(data-label);display:block;font-size:9px;letter-spacing:.6px;text-transform:uppercase;color:var(--muted);margin-bottom:7px}
   .table-wrap td:first-child strong{max-width:none;font-size:14px}
 }
+
+/* Selected campaign workspace: shared form, real fields, details beside creative. */
+dialog.campaign-editor{width:min(1200px,calc(100% - 32px));background:var(--canvas)}
+.campaign-editor #form-fields{grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);gap:20px;align-items:start}
+.campaign-details,.campaign-editor .campaign-banner{min-width:0;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:22px}
+.campaign-details{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px;align-content:start}
+.campaign-details h3{margin:0;font-size:19px;font-weight:600}
+.campaign-details label{min-width:0;align-content:start}
+.campaign-details label:has(#field-budget){grid-column:1/-1}
+.campaign-editor input,.campaign-editor select,.campaign-editor textarea{min-width:0}
+.campaign-editor .campaign-banner{align-content:start}
+.campaign-editor .banner-actions{justify-content:space-between}
+.campaign-editor .banner-review-actions{justify-content:flex-start}
+.campaign-editor #saved-campaign-banners{grid-template-columns:1fr}
+.campaign-editor{scroll-padding-bottom:140px}
+.campaign-editor .dialog-actions{position:sticky;bottom:-28px;z-index:1;align-items:center;background:var(--canvas);padding:16px 0;margin-top:24px}
+@media(max-width:900px){
+  .campaign-editor #form-fields{grid-template-columns:minmax(0,1fr)}
+}
+@media(max-width:720px){
+  dialog.campaign-editor{width:calc(100% - 16px);padding:16px}
+  .campaign-editor #form-fields{gap:16px}
+  .campaign-details{grid-template-columns:minmax(0,1fr);gap:16px}
+  .campaign-details,.campaign-editor .campaign-banner{padding:16px}
+  .campaign-editor input,.campaign-editor select,.campaign-editor textarea{font-size:16px}
+  .campaign-editor .dialog-actions button{flex:1}
+  .campaign-editor .dialog-actions{bottom:-16px}
+}

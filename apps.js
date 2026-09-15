@@ -186,7 +186,9 @@ function closeEditor(){
 }
 function openCampaign(c=null) {
   dialogSetup(c?"Edit campaign":"Create campaign","Use a saved client or brand, or add a reusable name. An existing lead can supply its campaign brief without copying personal contact details.");
-  editing={kind:"campaign",id:c?.id,requestId:crypto.randomUUID()};$("editor").classList.add("campaign-editor");const fields=$("form-fields");
+  editing={kind:"campaign",id:c?.id,requestId:crypto.randomUUID()};$("editor").classList.add("campaign-editor");
+  const fields=node("section",null,"campaign-details");fields.id="campaign-details";fields.setAttribute("aria-labelledby","campaign-details-title");
+  const detailsTitle=node("h3","Campaign details","full");detailsTitle.id="campaign-details-title";fields.append(detailsTitle);$("form-fields").append(fields);
   const inputs={};
   function add(name,label,options={}) {const item=field(name,label,{value:c?.[name]??"",...options});fields.append(item.label);inputs[name]=item.input;return item;}
   if(!c) {
@@ -247,8 +249,9 @@ function openCampaign(c=null) {
 // Unsaved images stay separate from campaign records until an explicit reviewed save.
 function addCampaignBanner(c,briefInput) {
   const owner=editing,banner={draft:null,busy:false};owner.banner=banner;
-  const section=node("section",null,"campaign-banner full");section.id="banner-section";
-  section.append(node("p","OPTIONAL CAMPAIGN CREATIVE","eyebrow"),node("h3","Campaign banner"),node("p","1. Describe the image. 2. Generate and review it. 3. Save the campaign to keep the approved banner.","muted"));
+  const section=node("section",null,"campaign-banner");section.id="banner-section";section.setAttribute("aria-labelledby","campaign-banner-title");
+  const bannerTitle=node("h3","Campaign banner");bannerTitle.id="campaign-banner-title";
+  section.append(node("p","OPTIONAL CAMPAIGN CREATIVE","eyebrow"),bannerTitle,node("p","1. Describe the image. 2. Generate and review it. 3. Save the campaign to keep the approved banner.","muted"));
   const provider=node("p",state.ai.message,"callout "+(state.ai.configured?"":"warning"));
   const promptLabel=node("label","Image prompt"),prompt=node("textarea");prompt.id="banner-prompt";prompt.maxLength=4000;
   promptLabel.append(prompt,node("small","Describe the artwork and leave space for your message. Do not include personal lead or customer details. AI-generated lettering can be inaccurate."));
@@ -262,8 +265,9 @@ function addCampaignBanner(c,briefInput) {
   review.append(reviewCheck,node("span","I checked the image, wording, rights and suitability for this campaign."));review.hidden=true;
   const approve=button("Approve banner",approveDraft);approve.id="approve-banner";approve.hidden=true;approve.disabled=true;
   const discard=button("Discard banner draft",()=>invalidateDraft("Banner removed from this unsaved campaign. You can save without a banner."),"quiet");discard.id="discard-banner";discard.hidden=true;
-  const actions=node("div",null,"banner-actions");actions.append(generate,useBrief,approve,discard);
-  section.append(provider,promptLabel,consent,actions,feedback,preview,review,node("p","Unsaved banners expire after 30 minutes and are lost if the server restarts. Closing this form discards the unsaved banner. Saved campaign assets stay in the database. Nothing is published automatically.","muted"));
+  const actions=node("div",null,"banner-actions");actions.append(useBrief,generate);
+  const reviewActions=node("div",null,"banner-actions banner-review-actions");reviewActions.append(approve,discard);
+  section.append(provider,promptLabel,consent,actions,feedback,preview,review,reviewActions,node("p","Unsaved banners expire after 30 minutes and are lost if the server restarts. Closing this form discards the unsaved banner. Saved campaign assets stay in the database. Nothing is published automatically.","muted"));
   $("form-fields").append(section);
   function say(text,warning=false){feedback.textContent=text;feedback.className="callout"+(warning?" warning":"");feedback.hidden=!text;}
   function setBusy(value){
