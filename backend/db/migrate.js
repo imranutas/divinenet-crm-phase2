@@ -17,6 +17,17 @@ function runMigrations(db) {
   normaliseDatabase(db);
   assetSchema(db);
 
+  db.transaction(() => {
+    db.exec(`CREATE TABLE IF NOT EXISTS campaign_save_requests(
+      request_id TEXT PRIMARY KEY,
+      request_hash TEXT NOT NULL,
+      campaign_id TEXT REFERENCES campaigns(id) ON DELETE SET NULL,
+      created_at TEXT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_campaign_save_requests_campaign ON campaign_save_requests(campaign_id);`);
+    db.prepare('INSERT OR IGNORE INTO schema_migrations VALUES (4,?)').run(new Date().toISOString());
+  })();
+
   return db;
 }
 
