@@ -117,8 +117,13 @@ async function main() {
     await page.waitForFunction(() => document.getElementById('view').getAttribute('aria-busy') === 'false');
     return campaign;
   }
+  let executedCount = 0;
   async function check(name, fn) {
-    try { await fn(); report.checks.push({ name, result: 'Pass' }); }
+    try {
+  await fn();
+  executedCount += 1;
+  report.checks.push({ name, result: 'Pass' });
+}
     catch (error) {
       report.checks.push({ name, result: 'Fail', message: error.message });
       if (page) await page.screenshot({ path: path.join(output, 'failure-' + report.checks.length + '.png'), fullPage: true }).catch(() => {});
@@ -259,10 +264,13 @@ async function main() {
       assert.equal((await records('campaigns')).length, 1);
       assert.equal((await records('campaigns/' + saved.id + '/assets')).length, 0);
     });
+    assert.equal(executedCount, 9, 'Expected all 9 banner scenarios to complete successfully');
   } catch (error) { report.setupError = error.message; }
   finally {
     if (browser) await browser.close();
     for (const store of stores) { await new Promise(resolve => store.server.close(resolve)); if (store.db.open) store.db.close(); }
+    report.executedCount = executedCount;
+report.expectedCount = 9;
     report.providerCalls = providerCalls; report.passed = report.checks.filter(check => check.result === 'Pass').length; report.failed = report.checks.filter(check => check.result === 'Fail').length;
     report.sourceUnchangedDuringRun = JSON.stringify(report.sourceHashes) === JSON.stringify(sourceHashes());
     report.completedAt = new Date().toISOString();
