@@ -1,7 +1,7 @@
 "use strict";
 // Shared API-backed workspace. Legacy browser records are not silently imported.
 const $ = id => document.getElementById(id);
-const state = { campaigns:[], leads:[], clients:[], brands:[], analytics:null, ai:null, ready:false, route:"dashboard", studioCampaign:"", studioPrompt:"" };
+const state = { campaigns:[], leads:[], clients:[], brands:[], analytics:null, ai:null, ready:false, route:"dashboard" };
 const channels = ["Facebook","Instagram","LinkedIn","Website"];
 const statuses = ["Draft","Active","Paused","Completed"];
 const stages = ["New","Contacted","Qualified"];
@@ -98,26 +98,34 @@ message("notice", "");
     $("primary-action").disabled=true;
   } finally {if(version===loadVersion){$("refresh").disabled=false;$("view").setAttribute("aria-busy","false");}}
 }
+function normalizeLegacyStudioRoute() {
+  if (location.hash === "#studio") {
+    history.replaceState(
+      history.state,
+      "",
+      location.pathname + location.search + "#campaigns"
+    );
+  }
+}
 function render() {
   if(!state.ready)return;
   if(objectUrl){URL.revokeObjectURL(objectUrl);objectUrl=null;}
-  const route=location.hash.slice(1);state.route=["campaigns","leads","studio","model"].includes(route)?route:"dashboard";
+  const route=location.hash.slice(1);state.route=["campaigns","leads","model"].includes(route)?route:"dashboard";
   const headings={
     dashboard:["Overview","Your marketing, in focus.","Plan campaigns, organise responses and review creative in one place."],
     campaigns:["Campaigns","From a brief to a campaign.","Every record is saved to the shared backend. Search, review and manage your campaigns."],
     leads:["Leads & pipeline","Make every response count.","Capture campaign-linked leads and follow their recorded progress."],
-    studio:["Creative studio","Make space for your next idea.","Generate campaign imagery, review each draft and export approved assets."],
     model:["Data model","See how your data connects.","A view of the implemented relationships and the boundaries still awaiting agreement."]
   };
   const [breadcrumb,title,description]=headings[state.route];
   $("breadcrumb").textContent=breadcrumb;$("page-title").textContent=title;$("page-description").textContent=description;
   document.title="Divinenet · "+breadcrumb;
   for(const a of document.querySelectorAll("[data-route]")) {if(a.dataset.route===state.route)a.setAttribute("aria-current","page");else a.removeAttribute("aria-current");}
-  const primary=$("primary-action");primary.hidden=["studio","model"].includes(state.route);primary.disabled=false;
+  const primary=$("primary-action");primary.hidden=state.route==="model";primary.disabled=false;
   primary.textContent=state.route==="leads"?"Add lead ＋":"Create campaign ＋";
   primary.onclick=()=>state.route==="leads"?openLead():openCampaign();
   $("view").replaceChildren();
-  ({dashboard:renderDashboard,campaigns:renderCampaigns,leads:renderLeads,studio:renderStudio,model:renderModel})[state.route]();
+  ({dashboard:renderDashboard,campaigns:renderCampaigns,leads:renderLeads,model:renderModel})[state.route]();
 }
 function campaignTable(records,limited=false) {
   if(!records.length)return empty("No campaigns here yet","Create a campaign to start planning. Empty records stay empty.");
@@ -529,7 +537,9 @@ $("refresh").addEventListener("click",()=>{
 
 window.addEventListener("hashchange",()=>{
   if(location.hash==="#main")return;
+  normalizeLegacyStudioRoute();
   clearActionMessages();
   render();
 });
+normalizeLegacyStudioRoute();
 refresh();
