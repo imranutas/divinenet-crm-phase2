@@ -25,6 +25,7 @@ $env:CRM_ENABLE_LIVE_AI="false"
 $env:NODE_ENV="development"
 $env:PORT="3194"
 $env:CRM_DATABASE_PATH=Join-Path (Get-Location) "backend\db\local-review.sqlite"
+
 npm.cmd start
 ```
 
@@ -60,7 +61,34 @@ This creates/uses:
 
 A new empty database can legitimately show zero campaign and lead records.
 
-Do not overwrite an active database when performing verification.
+### Database Schema Note
+
+The six-entity business ERD is a simplified view of the core business entities and does not represent the complete physical database schema. Operational tables should be documented separately as part of the complete physical schema.
+
+For a fresh application database **before live-AI initialization**, the inspected schema contains:
+
+- **10 tables**
+- **6 declared foreign keys**
+
+After **live-AI initialization**, the schema contains:
+
+- **11 tables**
+- **6 declared foreign keys**
+
+The additional operational table created during live-AI initialization is:
+
+`ai_runtime_guard`
+
+Once `ai_runtime_guard` has been created, it remains in the database even if live AI is later disabled.
+
+Any table or foreign-key count must be recorded together with the inspected application version/commit and the database configuration used for that inspection.
+
+**Inspected version:** `2b25004cdbb296d9bba56f3695eb9e281eb4060a`
+
+**Database configuration:** SQLite using `CRM_DATABASE_PATH`. The fresh application database count applies before live-AI initialization; the 11-table count applies after live-AI initialization creates `ai_runtime_guard`.
+
+These schema counts are based on source-review evidence. They should not be represented as new human approval or new test execution.
+
 
 ## Restart With the Same Database
 
@@ -81,6 +109,7 @@ $env:CRM_ENABLE_LIVE_AI="false"
 $env:NODE_ENV="development"
 $env:PORT="3194"
 $env:CRM_DATABASE_PATH=Join-Path (Get-Location) "backend\db\local-review.sqlite"
+
 npm.cmd start
 ```
 
@@ -96,6 +125,7 @@ Open a separate terminal at the repository root and run:
 
 ```powershell
 $env:CRM_TEST_EXECUTOR="Mohammed Abdul Imran - developer verification"
+
 npm.cmd test
 ```
 
@@ -115,7 +145,7 @@ Double-clicking or directly opening `index.html` is not the connected startup me
 
 Important environment variables:
 
-- `PORT` – local application port. Port `3194` is used as the shared example but the port is configurable.
+- `PORT` – local application port. Port `3194` is used as the shared example, but the port is configurable.
 - `CRM_DATABASE_PATH` – SQLite database location.
 - `CRM_ENABLE_LIVE_AI` – controls whether approved live AI configuration may be used.
 - `NODE_ENV` – runtime environment.
@@ -128,8 +158,11 @@ $env:CRM_ENABLE_LIVE_AI="false"
 $env:NODE_ENV="development"
 $env:PORT="3194"
 $env:CRM_DATABASE_PATH=Join-Path (Get-Location) "backend\db\local-review.sqlite"
+
 npm.cmd start
 ```
+
+For schema inspection or reporting, record the exact application version/commit together with the database configuration, including whether live AI initialization has occurred.
 
 Do not commit API keys, passwords, tokens, provider credentials, or `.env` secrets to the repository.
 
