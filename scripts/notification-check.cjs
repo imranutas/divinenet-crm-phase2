@@ -49,11 +49,11 @@ async function main() {
     await settled();
     await page.locator('#view').getByRole('table').waitFor();
   }
-  async function goToStudio() {
+  async function goToOverview() {
     await page.evaluate(() => {
       window.notificationNavigation = new Promise(resolve => window.addEventListener('hashchange', resolve, { once: true }));
     });
-    await page.locator('[data-route="studio"]').click();
+    await page.locator('[data-route="dashboard"]').click();
     await page.evaluate(() => window.notificationNavigation.then(() => true));
   }
   async function deleteCampaign(campaign) {
@@ -125,8 +125,9 @@ async function main() {
     await check('Navigation clears an obsolete campaign action error', async () => {
       await openCampaigns();
       await deleteCampaign(protectedCampaign);
-      await goToStudio();
-      await page.getByRole('heading', { name: 'Creative brief', exact: true }).waitFor();
+      await goToOverview();
+     await page.locator('#breadcrumb').waitFor();
+assert.equal(await page.locator('#breadcrumb').textContent(), 'Overview');
       assert.equal(await page.locator('#global-error').isVisible(), false);
       assert.equal(await page.locator('#notice').isVisible(), false);
     });
@@ -180,7 +181,7 @@ async function main() {
       await page.locator('#refresh').click();
       await page.locator('#global-error').waitFor();
       await settled();
-      await goToStudio();
+      await goToOverview();
       assert.match(await page.locator('#global-error').innerText(), /Synthetic backend outage/);
       assert.equal(await page.locator('#global-error').isVisible(), true);
       assert.equal(await page.locator('#primary-action').isDisabled(), true);

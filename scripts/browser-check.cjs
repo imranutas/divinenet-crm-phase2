@@ -124,9 +124,19 @@ async function main() {
       }
     });
     await check('Missing AI configuration is visible and generation stays disabled', async () => {
-      await page.locator('a[data-route="studio"]').click();
-      assert.equal(await page.getByRole('button', { name: 'Generate image', exact: true }).isDisabled(), true);
-      assert.equal(db.prepare('SELECT COUNT(*) AS n FROM campaign_assets').get().n, 0);
+      await page.goto(base + '/#studio');
+await page.locator('#connection.online').waitFor();
+await page.waitForFunction(() => location.hash === '#campaigns');
+
+assert.equal(await page.locator('[data-route="studio"]').count(), 0);
+assert.equal(await page.locator('#view .studio-form').count(), 0);
+assert.equal(await page.locator('#editor').isVisible(), false);
+
+await page.locator('#primary-action').click();
+await page.locator('#banner-section').waitFor();
+assert.equal(await page.locator('#generate-banner').isDisabled(), true);
+assert.equal(db.prepare('SELECT COUNT(*) AS n FROM campaign_assets').get().n, 0);
+await page.locator('#cancel-editor').click();
     });
   } catch (error) { process.exitCode = 1; report.error = error.message; }
   finally {
