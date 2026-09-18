@@ -36,10 +36,12 @@ function configFor(root = ROOT) {
   if (config.aiDirectory != null && (typeof config.aiDirectory !== 'string' || !config.aiDirectory.trim())) throw new Error('aiDirectory must be a nonempty path or null.');
   return { enableAI: true, openBrowser: true, ...config };
 }
+
 function aiDirectory(config, root = ROOT) {
   if (config.aiDirectory) return path.resolve(root, config.aiDirectory);
   return [path.join(root, 'ai'), path.resolve(root, '../../AI_RUNTIME_PILOT_15_SEPTEMBER_2026')].find(dir => fs.existsSync(path.join(dir, 'manifest.json')));
 }
+
 function assertDependencies() {
   if (Number(process.versions.node.split('.')[0]) !== 24) throw new Error('Node.js 24 is required; found ' + process.version + '. Nothing was installed or changed.');
   const localRequire = createRequire(path.join(ROOT, 'backend/package.json'));
@@ -47,13 +49,23 @@ function assertDependencies() {
     for (const dependency of ['express', 'cors', 'better-sqlite3']) {
       const resolved = localRequire.resolve(dependency);
       if (!resolved.toLowerCase().startsWith(path.join(ROOT, 'backend/node_modules').toLowerCase() + path.sep)) throw new Error('Dependency is outside this package');
-      localRequire(dependency);
     }
-    localRequire(path.join(ROOT, 'backend/node_modules/better-sqlite3/prebuilds', process.platform + '-' + process.arch + '.node'));
+    localRequire('express');
+    localRequire('cors');
+    const Database = localRequire('better-sqlite3');
+    let probe;
+    try {
+      probe = new Database(':memory:');
+      const result = probe.prepare('SELECT 1 AS ready').get();
+      if (result.ready !== 1) throw new Error('SQLite readiness query failed');
+    } finally {
+      if (probe) probe.close();
+    }
   } catch (error) {
     throw new Error('Backend dependencies are missing or incompatible in this package. Restore backend/node_modules from the supplied package, or run npm ci --prefix backend separately if you choose to download dependencies. Details: ' + error.message);
   }
 }
+
 async function assertPortFree(port) {
   await new Promise((resolve, reject) => {
     const probe = net.createServer();
@@ -61,6 +73,7 @@ async function assertPortFree(port) {
     probe.listen({ host: '127.0.0.1', port, exclusive: true }, () => probe.close(resolve));
   });
 }
+
 function parseListeners(output, port) {
   return output.split(/\r?\n/).flatMap(line => {
     const fields = line.trim().split(/\s+/);
@@ -70,11 +83,13 @@ function parseListeners(output, port) {
     return [{ address: fields[1].slice(0, -(String(port).length + 1)), pid }];
   });
 }
+
 function listeners(port) {
   const result = spawnSync('netstat.exe', ['-ano', '-p', 'tcp'], { encoding: 'utf8', windowsHide: true, timeout: 10000 });
   if (result.error || result.status !== 0) throw new Error('Cannot safely inspect local runtime ownership.');
   return parseListeners(result.stdout, port);
 }
+
 function processIdentity(pid) {
   if (!Number.isSafeInteger(pid) || pid < 1) throw new Error('Invalid runtime process identity.');
   const command = `$p=Get-Process -Id ${pid} -ErrorAction Stop; [pscustomobject]@{processId=$p.Id;executable=$p.Path;started=$p.StartTime.ToUniversalTime().ToString('o')} | ConvertTo-Json -Compress`;
@@ -82,15 +97,18 @@ function processIdentity(pid) {
   if (result.error || result.status !== 0) throw new Error('Cannot verify the existing image-runtime process.');
   return JSON.parse(result.stdout.replace(/^\uFEFF/, '').trim());
 }
+
 function recordedIdentityMatches(record, actual, expectedExe) {
   return record?.processId === actual?.processId && samePath(record.executable, expectedExe) && samePath(actual.executable, expectedExe) &&
     Number.isFinite(Date.parse(record.started)) && Number.isFinite(Date.parse(actual.started)) && Math.abs(Date.parse(record.started) - Date.parse(actual.started)) <= 5000;
 }
+
 async function sha256(file) {
   const hash = crypto.createHash('sha256');
   for await (const chunk of fs.createReadStream(file)) hash.update(chunk);
   return hash.digest('hex');
 }
+
 async function verifyAI(dir) {
   console.log('Checking pinned local AI files (about 6 GB; no download)...');
   const manifest = readJson(path.join(dir, 'manifest.json'));
@@ -103,6 +121,7 @@ async function verifyAI(dir) {
   const expectedRuntimeNames = new Set(pinned.files.filter(([name]) => name.startsWith('runtime/')).map(([name]) => path.basename(name).toLowerCase()));
   for (const name of fs.readdirSync(path.join(dir, 'runtime'))) if (/\.(dll|exe)$/i.test(name) && !expectedRuntimeNames.has(name.toLowerCase())) throw new Error('Unexpected runtime executable: ' + name);
 }
+
 async function readEndpoint(url) {
   const response = await fetch(url, { signal: AbortSignal.timeout(3000), redirect: 'error' });
   if (!response.ok) throw new Error('Readiness request returned HTTP ' + response.status);
@@ -110,6 +129,7 @@ async function readEndpoint(url) {
   if (text.length > 100000) throw new Error('Unexpected readiness response.');
   return JSON.parse(text);
 }
+
 function capabilitiesMatch(value) {
   const defaults = value?.defaults;
   return value?.current_mode === 'img_gen' && value?.model?.name === 'z_image_turbo-Q3_K.gguf' &&
@@ -117,14 +137,17 @@ function capabilitiesMatch(value) {
     defaults?.batch_count === 1 && defaults?.output_format === 'png' &&
     defaults?.sample_params?.sample_steps === 8 && defaults?.sample_params?.sample_method === 'euler' && defaults?.sample_params?.guidance?.txt_cfg === 1;
 }
+
 async function readyAI() {
   const models = await readEndpoint(AI_URL + '/v1/models');
   if (!Array.isArray(models.data) || !models.data.some(item => item.id === 'sd-cpp-local')) throw new Error('Unexpected local image server.');
   if (!capabilitiesMatch(await readEndpoint(AI_URL + '/sdcpp/v1/capabilities'))) throw new Error('Loaded model/settings do not match the reviewed AI pilot.');
 }
+
 function runtimeArgs() {
   return ['--listen-ip','127.0.0.1','--listen-port',String(AI_PORT),'--diffusion-model','z_image_turbo-Q3_K.gguf','--llm','Qwen3-4B-Instruct-2507-Q4_K_M.gguf','--vae','ae.safetensors','--backend','Vulkan1','--offload-to-cpu','--max-vram','6.5','--diffusion-fa','--threads','8','--width','768','--height','512','--steps','8','--cfg-scale','1.0','--sampling-method','euler','--seed','42','--log-level','info'];
 }
+
 async function prepareAI(config, checkOnly) {
   if (!config.enableAI) { console.log('AI disabled by launcher choice. Campaigns and leads remain available.'); return false; }
   if (process.platform !== 'win32' || process.arch !== 'x64') throw new Error('This optional AI pilot requires Windows x64 with the reviewed Vulkan GPU setup.');
@@ -177,9 +200,11 @@ async function prepareAI(config, checkOnly) {
   }
   throw new Error('AI startup timed out; core CRM will remain available.');
 }
+
 function stopOwnedRuntime() {
   if (ownedRuntime && ownedRuntime.exitCode === null && !ownedRuntime.killed) ownedRuntime.kill();
 }
+
 function stopCRM(code = 0) {
   shutdownCode = Math.max(shutdownCode, code);
   if (stopping) return;
@@ -194,6 +219,7 @@ function stopCRM(code = 0) {
   else finished();
   if (code !== 0) setTimeout(() => { stopOwnedRuntime(); process.exit(1); }, 3000).unref();
 }
+
 function browserOpen(url) {
   // URL is a fixed loopback constant, not caller-controlled shell text.
   const child = process.platform === 'win32'
@@ -202,6 +228,7 @@ function browserOpen(url) {
   child.on('error', () => console.log('Open ' + url + ' in your browser.'));
   child.unref();
 }
+
 async function enablePackageStop() {
   fs.mkdirSync(LOGS, { recursive: true });
   const token = crypto.randomBytes(32).toString('hex');
@@ -223,6 +250,7 @@ async function enablePackageStop() {
   await new Promise((resolve, reject) => { controlServer.once('error', reject); controlServer.listen(PIPE, resolve); });
   fs.writeFileSync(CRM_RECORD, JSON.stringify({ processId: process.pid, executable: process.execPath, packageRoot: ROOT, pipe: PIPE, token, started: new Date().toISOString() }, null, 2) + '\n', { mode: 0o600 });
 }
+
 async function requestPackageStop() {
   if (!fs.existsSync(CRM_RECORD)) { console.log('This package has no recorded CRM process. No process was stopped.'); return; }
   const record = readJson(CRM_RECORD);
@@ -238,11 +266,12 @@ async function requestPackageStop() {
   });
   console.log('Graceful shutdown requested from this package CRM only. Pre-existing AI and other services are untouched.');
 }
+
 async function main(argv = process.argv.slice(2)) {
   for (const arg of argv) if (!['--no-open', '--no-ai', '--check', '--help', '--stop'].includes(arg)) throw new Error('Unknown option ' + arg);
   if (argv.includes('--stop')) { await requestPackageStop(); return; }
   if (argv.includes('--help')) {
-    console.log('START-CRM.cmd [--no-open] [--no-ai] [--check] [--stop]\n--check validates files and existing readiness only; starts no service and opens no database.\n--stop requests graceful shutdown from this package only.\nCRM stays local at http://127.0.0.1:3192 with data/divinenet.sqlite.');
+    console.log('START-CRM.cmd [--no-open] [--no-ai] [--check] [--stop]\n--check validates files and existing readiness only; starts no service and opens no user or persistent database.\n--stop requests graceful shutdown from this package only.\nCRM stays local at http://127.0.0.1:3192 with data/divinenet.sqlite.');
     return;
   }
   console.log('Divinenet CRM - local workspace\nNo downloads, public hosting, existing database replacement or system installation.');
@@ -289,6 +318,7 @@ async function main(argv = process.argv.slice(2)) {
   console.log('READY: ' + CRM_URL + '/#campaigns');
   if (config.openBrowser && !argv.includes('--no-open')) browserOpen(CRM_URL + '/#campaigns');
 }
+
 if (require.main === module) {
   process.once('exit', stopOwnedRuntime);
   main().catch(error => {
@@ -296,4 +326,5 @@ if (require.main === module) {
     if (crmStarted) stopCRM(1);
   });
 }
-module.exports = { configFor, aiDirectory, parseListeners, recordedIdentityMatches, capabilitiesMatch, runtimeArgs, assertPortFree, samePath };
+
+module.exports = { configFor, aiDirectory, parseListeners, recordedIdentityMatches, capabilitiesMatch, runtimeArgs, assertDependencies, assertPortFree, samePath };
