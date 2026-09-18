@@ -6,6 +6,7 @@ const { createImageRuntimeGuard } = require('./image-runtime-guard');
 const DRAFT_TTL_MS = 30 * 60 * 1000;
 const MAX_DRAFTS = 8;
 const MAX_DRAFT_BYTES = 32 * 1024 * 1024;
+const MAX_UPLOAD_BYTES = 5 * 1024 * 1024;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const problem = (status, message) => Object.assign(new Error(message), { status });
 
@@ -113,6 +114,30 @@ function attachAssetRoutes(app, { db, campaigns, imageProvider, imageConfig, now
       res.status(201).json({ success: true, data: draftMetadata(draft) });
     } catch (error) { sendError(res, error); }
   });
+  app.post('/api/banner-drafts/upload', (req, res) => {
+    try {
+      const { imageBase64, prompt = '' } = req.body;
+      if (typeof prompt !== 'string' || prompt.length > 2000) throw problem(400, 'Image description must be text of at most 2000 characters');
+      if (typeof imageBase64 !== 'string' || !imageBase64.length) throw problem(400, 'A PNG image is required');
+      if (imageBase64.length > Math.ceil(MAX_UPLOAD_BYTES / 3) * 4) throw problem(413, 'The PNG image must be 5 MB or smaller');
+      // Buffer.from alone tolerates malformed base64; reject padding, whitespace and alternate encodings first.
+      if (imageBase64.length % 4 || /[^A-Za-z0-9+/=]/.test(imageBase64)) {
+        throw problem(400, 'The image must contain valid raw PNG base64');
+      }
+      const bytes = Buffer.from(imageBase64, 'base64');
+      if (bytes.length > MAX_UPLOAD_BYTES) throw problem(413, 'The PNG image must be 5 MB or smaller');
+      if (bytes.toString('base64') !== imageBase64) throw problem(400, 'The image encoding is invalid');
+      try { validatePng(bytes); } catch { throw problem(400, 'The image is not a supported, intact PNG (maximum dimensions 4096 by 4096)'); }
+      prune();
+      if (drafts.size >= MAX_DRAFTS || draftBytes() + bytes.length > MAX_DRAFT_BYTES) {
+        throw problem(429, 'Too many unsaved banners. Save or discard an existing banner before uploading another.');
+      }
+      const draft = { id: randomUUID(), bytes, provider: 'uploaded', model: 'user-file', prompt: prompt.trim(),
+        status: 'Draft', createdAt: new Date(now()).toISOString(), approvedAt: null, expires: now() + DRAFT_TTL_MS };
+      drafts.set(draft.id, draft);
+      res.status(201).json({ success: true, data: draftMetadata(draft) });
+    } catch (error) { sendError(res, error); }
+  });
   app.get('/api/banner-drafts/:id/image', (req, res) => {
     try { res.type('png').send(requireDraft(req.params.id).bytes); }
     catch (error) { sendError(res, error); }
@@ -183,4 +208,4 @@ function attachAssetRoutes(app, { db, campaigns, imageProvider, imageConfig, now
   };
 }
 
-module.exports = { readImageConfig, attachAssetRoutes, DRAFT_TTL_MS, MAX_DRAFTS, MAX_DRAFT_BYTES };
+module.exports = { readImageConfig, attachAssetRoutes, DRAFT_TTL_MS, MAX_DRAFTS, MAX_DRAFT_BYTES, MAX_UPLOAD_BYTES };

@@ -1,0 +1,59 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "SYNTHETIC ONLY - proposed integration preparation contract",
+    "version": "0.1.0-provisional",
+    "description": "Only method/path names come from the supplied api list.txt. All fields, schemas, authentication, responses and retry/appointment behaviour below are invented test fixtures, not the actual Phase 1 contract. No conversion endpoint, client acceptance or live appointment policy is established. Ephemeral memory only. Real Phase 1 connection is outside this harness and no earlier than 22 September 2026, subject to access and agreed contract."
+  },
+  "servers": [{ "url": "http://127.0.0.1:{port}", "description": "Random port printed by this run; never a live service", "variables": { "port": { "default": "0", "description": "Replace only with the current local simulator port. Zero is intentionally not a running target." } } }],
+  "security": [{ "SyntheticToken": [] }],
+  "paths": {
+    "/api/health": { "get": { "summary": "Local simulator health", "security": [], "responses": { "200": { "description": "Synthetic, in-memory service", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Health" } } } } } } },
+    "/api/customers": { "post": { "summary": "Create fictional customer; not lead conversion", "parameters": [{ "$ref": "#/components/parameters/Instance" }, { "$ref": "#/components/parameters/Idempotency" }], "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/PersonInput" } } } }, "responses": { "201": { "$ref": "#/components/responses/Created" }, "200": { "$ref": "#/components/responses/Replayed" }, "default": { "$ref": "#/components/responses/Error" } } } },
+    "/api/leads": { "post": { "summary": "Create fictional lead", "parameters": [{ "$ref": "#/components/parameters/Instance" }, { "$ref": "#/components/parameters/Idempotency" }], "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/PersonInput" } } } }, "responses": { "201": { "$ref": "#/components/responses/Created" }, "200": { "$ref": "#/components/responses/Replayed" }, "default": { "$ref": "#/components/responses/Error" } } } },
+    "/api/appointments": { "post": { "summary": "Create fictional appointment only for an existing synthetic customer", "description": "Does not establish availability, consent, staff/service ownership, conflict or timezone policies. UTC timestamp and duration bounds are fixtures only.", "parameters": [{ "$ref": "#/components/parameters/Instance" }, { "$ref": "#/components/parameters/Idempotency" }], "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/AppointmentInput" } } } }, "responses": { "201": { "$ref": "#/components/responses/Created" }, "200": { "$ref": "#/components/responses/Replayed" }, "default": { "$ref": "#/components/responses/Error" } } } }
+  },
+  "components": {
+    "securitySchemes": { "SyntheticToken": { "type": "http", "scheme": "bearer", "description": "Random per-process test token, not JWT or Phase 1 login. Never reuse a CRM password/session. Kept only in process memory." } },
+    "parameters": {
+      "Instance": { "name": "X-Integration-Prep-Instance", "in": "header", "required": true, "description": "Random instance marker returned by health; paired with the secret test token", "schema": { "type": "string", "pattern": "^[a-f0-9]{32}$" } },
+      "Idempotency": { "name": "Idempotency-Key", "in": "header", "required": true, "description": "Test-only per-route key. Same payload returns same record; changed payload gives 409. Receipts disappear on shutdown; do not claim restart-safe/exactly-once real integration.", "schema": { "type": "string", "pattern": "^[a-zA-Z0-9_-]{8,80}$" } }
+    },
+    "responses": {
+      "Created": { "description": "201: fictional record stored in memory", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/WriteResult" } } } },
+      "Replayed": { "description": "200: prior identical write replayed, without a duplicate", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/WriteResult" } } } },
+      "Error": { "description": "400 invalid JSON/payload/key; 401 test authentication; 403 browser origin/host blocked; 404 unsupported route; 409 changed-payload retry; 413 oversized body; 415 non-JSON; 422 missing synthetic customer; 503 injected appointment failure. Test-only fault switches also exercise a blocked redirect or malformed successful response. Never infer success from an error or timeout.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } }
+    },
+    "schemas": {
+      "PersonInput": {
+        "type": "object", "additionalProperties": false, "required": ["synthetic", "sourceRef", "displayName", "email"],
+        "properties": {
+          "synthetic": { "type": "boolean", "enum": [true] },
+          "sourceRef": { "type": "string", "pattern": "^fixture-[a-z0-9-]{1,60}$" },
+          "displayName": { "type": "string", "pattern": "^Fictional ", "maxLength": 120 },
+          "email": { "type": "string", "pattern": "^[a-z0-9._+-]+@example\\.invalid$" }
+        },
+        "example": { "synthetic": true, "sourceRef": "fixture-customer-001", "displayName": "Fictional Example Customer", "email": "customer001@example.invalid" }
+      },
+      "AppointmentInput": {
+        "type": "object", "additionalProperties": false, "required": ["synthetic", "sourceRef", "customerId", "startsAt", "durationMinutes"],
+        "properties": {
+          "synthetic": { "type": "boolean", "enum": [true] },
+          "sourceRef": { "type": "string", "pattern": "^fixture-[a-z0-9-]{1,60}$" },
+          "customerId": { "type": "string", "pattern": "^sim-customer-[1-9][0-9]*$" },
+          "startsAt": { "type": "string", "format": "date-time", "pattern": "^\\d{4}-\\d\\d-\\d\\dT\\d\\d:\\d\\d:\\d\\d\\.000Z$", "description": "Must round-trip as a real UTC ISO date; format alone is insufficient" },
+          "durationMinutes": { "type": "integer", "minimum": 1, "maximum": 120 }
+        },
+        "example": { "synthetic": true, "sourceRef": "fixture-appointment-001", "customerId": "sim-customer-1", "startsAt": "2026-09-23T00:00:00.000Z", "durationMinutes": 30 }
+      },
+      "Record": {
+        "type": "object", "required": ["id", "synthetic", "sourceRef"],
+        "description": "Exact accepted PersonInput or AppointmentInput plus a generated sim-{kind}-{positive integer} id. Client validates every returned input field and rejects mismatches. Kind is determined by request route.",
+        "properties": { "id": { "type": "string", "pattern": "^sim-(customer|lead|appointment)-[1-9][0-9]*$" }, "synthetic": { "type": "boolean", "enum": [true] }, "sourceRef": { "type": "string", "pattern": "^fixture-[a-z0-9-]{1,60}$" } }
+      },
+      "WriteResult": { "type": "object", "additionalProperties": false, "required": ["mode", "instanceId", "replayed", "record"], "properties": { "mode": { "type": "string", "enum": ["synthetic-only"] }, "instanceId": { "type": "string", "pattern": "^[a-f0-9]{32}$" }, "replayed": { "type": "boolean" }, "record": { "$ref": "#/components/schemas/Record" } }, "example": { "mode": "synthetic-only", "instanceId": "00000000000000000000000000000000", "replayed": false, "record": { "id": "sim-customer-1", "synthetic": true, "sourceRef": "fixture-customer-001", "displayName": "Fictional Example Customer", "email": "customer001@example.invalid" } } },
+      "Health": { "type": "object", "additionalProperties": false, "required": ["mode", "instanceId", "status", "persistence"], "properties": { "mode": { "type": "string", "enum": ["synthetic-only"] }, "instanceId": { "type": "string", "pattern": "^[a-f0-9]{32}$" }, "status": { "type": "string", "enum": ["ok"] }, "persistence": { "type": "string", "enum": ["memory-only"] } } },
+      "Error": { "type": "object", "additionalProperties": false, "required": ["mode", "instanceId", "error"], "properties": { "mode": { "type": "string", "enum": ["synthetic-only"] }, "instanceId": { "type": "string", "pattern": "^[a-f0-9]{32}$" }, "error": { "type": "object", "required": ["code"], "additionalProperties": false, "properties": { "code": { "type": "string", "pattern": "^[A-Z0-9_]{1,80}$" } } } } }
+    }
+  }
+}

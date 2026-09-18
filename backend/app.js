@@ -9,6 +9,8 @@ const { validateStageTransition } = require('./services/lead-pipeline');
 const { createAnalyticsService } = require('./services/analytics-service');
 const { attachAssetRoutes } = require('./services/image-assets');
 const { createCampaignSave } = require('./services/campaign-save');
+const { attachLocalAccess } = require('./services/local-access');
+const { attachIntakeRoutes } = require('./services/local-intake');
 const { validateCampaign, validateLead, parseBudget } = require('./validation');
 
 const fail = (res, status, message) => res.status(status).json({ success: false, message });
@@ -46,7 +48,7 @@ function createApp(options = {}) {
   const directory = createDirectoryRepository(db);
   const analytics = createAnalyticsService(campaigns, leads);
 
-  // This unauthenticated review server remains restricted to localhost.
+  // Local access control supplements the loopback-only transport boundary.
   app.disable('x-powered-by');
   app.use((req, res, next) => {
     if (!['localhost', '127.0.0.1', '[::1]'].includes(req.hostname)) {
@@ -72,6 +74,8 @@ function createApp(options = {}) {
     }
     next();
   });
+  // Only the bounded PNG upload needs a larger envelope; ordinary API requests stay small.
+  app.use('/api/banner-drafts/upload', express.json({ limit: '7mb' }));
   app.use(express.json({ limit: '100kb' }));
   app.use((req, res, next) => {
     if (['POST', 'PUT', 'PATCH'].includes(req.method) &&
@@ -80,6 +84,8 @@ function createApp(options = {}) {
     }
     next();
   });
+
+  attachLocalAccess(app, { db, enabled: options.accessControl === true, now: options.now });
 
   const assets = attachAssetRoutes(app, { db, campaigns, imageProvider: options.imageProvider,
     imageConfig: options.imageConfig, now: options.now });
@@ -107,6 +113,7 @@ function createApp(options = {}) {
     const row = db.prepare('UPDATE app_sequences SET value=value+1 WHERE name=? RETURNING value').get(name);
     return prefix + String(row.value).padStart(3, '0');
   });
+  attachIntakeRoutes(app, { db, campaigns, leads, nextId, now: options.now });
 
   app.get('/api/health', (_req, res) => message(res, 'Divinenet CRM API is running'));
   app.get('/api/campaigns', (_req, res) => data(res, campaigns.getAll().map(toApiCampaign)));
@@ -230,13 +237,15 @@ function createApp(options = {}) {
   // Expose only the chosen UI files, never the database or backend sources.
   const publicRoot = path.resolve(__dirname, '..');
   const publicFiles = {
+    '/auth.html': 'auth.html', '/auth.js': 'auth.js', '/auth.css': 'auth.css',
     '/': 'index.html', '/index.html': 'index.html', '/apps.js': 'apps.js', '/style.css': 'style.css',
     '/lead-prototype.html': 'lead-prototype.html', '/lead-prototype.js': 'lead-prototype.js',
-    '/lead-style.css': 'lead-style.css'
+    '/lead-style.css': 'lead-style.css', '/capture.js': 'capture.js', '/capture.css': 'capture.css'
   };
   for (const [route, file] of Object.entries(publicFiles)) {
     app.get(route, (_req, res) => res.sendFile(path.join(publicRoot, file)));
   }
+  app.get('/capture/:token', (_req, res) => res.sendFile(path.join(publicRoot, 'capture.html')));
   app.use((_req, res) => fail(res, 404, 'Route not found'));
   app.use((error, _req, res, _next) => {
     let status = 500, text = 'The request could not be completed';

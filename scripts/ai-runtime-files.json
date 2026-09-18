@@ -1,0 +1,31 @@
+{
+  "runtimeCommit": "07a85c74cb08cda3aa176f688c5d8f522615e2b9",
+  "modelLabel": "Z-Image-Turbo Q3_K@c61c0e422dc8b541b7548cf33a4ef8302b0f8085; Qwen3-4B-Instruct-2507 Q4_K_M; sd.cpp@07a85c74",
+  "files": [
+    ["z_image_turbo-Q3_K.gguf",3143559104,"4b44bdaa7814f20d7cf144e3939bd93aa32f50660204dd0c2aea5c5376232980"],
+    ["Qwen3-4B-Instruct-2507-Q4_K_M.gguf",2497281120,"3605803b982cb64aead44f6c1b2ae36e3acdb41d8e46c8a94c6533bc4c67e597"],
+    ["ae.safetensors",335304388,"afc8e28272cd15db3919bacdb6918ce9c1ed22e96cb12c4d5ed0fba823529e38"],
+    ["runtime/ggml-base.dll",657920,"3481650129130fc7d0312e2bba895a6f794be0cb3ca38a0d399b8289fc28f915"],
+    ["runtime/ggml-cpu-alderlake.dll",832000,"0e52cd2811cbe6ae00bdfc5ae24d9aaf01bba3d4329ea8cdaa17e3edf2d611fd"],
+    ["runtime/ggml-cpu-cannonlake.dll",876544,"314608794d83051851b68f12d09f20e61323a59232f604781f046779b278e21a"],
+    ["runtime/ggml-cpu-cascadelake.dll",874496,"35457783c65a01c08813e841e6a6877a00a54bdbd16d78b1cea4edffeaaf3a9f"],
+    ["runtime/ggml-cpu-haswell.dll",833024,"1ed23b03da42bfa19667dfea8ad6e63f6402930deb3ff3689c7a51f52f80d662"],
+    ["runtime/ggml-cpu-icelake.dll",874496,"611cd5881d226a93a8bf40cb1558fd11c2161a2aef66a23555e04f7a6a2c7f5d"],
+    ["runtime/ggml-cpu-sandybridge.dll",806400,"e9fc3b0ec6be40e7c49793bcf748331a1c4bf3b37f8faf81f4af304447f5b969"],
+    ["runtime/ggml-cpu-skylakex.dll",876544,"2e1a9e4791a5fb255885128aa7cb2921d28e6a7870339d0b6b6908f12187e74b"],
+    ["runtime/ggml-cpu-sse42.dll",793600,"a906863308311493a9aa6d5f760d805822cdc499c3377b6c29046c7652f6d674"],
+    ["runtime/ggml-cpu-x64.dll",794112,"0926000f9ba11607fda9cce90f84fa5a5e0a075f8ba10b4c68cdca4e17d79452"],
+    ["runtime/ggml-vulkan.dll",50544640,"1017b7889356846fae07dae1423573053c3f6f3efcaec3821f2e177bc51437b5"],
+    ["runtime/ggml.dll",63488,"0ae7259dd5ec8b11833b5bd5e4b9db180dc994e1c72ff30bdcd65c57d8c46814"],
+    ["runtime/ggml.txt",1099,"bcd8ec749126d45cb06737d0690295d73df4b6e7e194205bcf91190368f27285"],
+    ["runtime/libsharpyuv.dll",24576,"f02ad35b5af33f5500281285dc05262a84a7c6e0e6081d67100912c7d19c8d3e"],
+    ["runtime/libwebp.dll",373248,"f5b00790144a5b2427f890d58aa4f2d0822032c5e1781b9d7b889d5c63dac4e6"],
+    ["runtime/libwebpmux.dll",41984,"f47ade56851e2bf5a42c66b58a9ce502832544727e2b81a19ffa720c6e93a32b"],
+    ["runtime/sd-cli.exe",656384,"45854471b6f66bf9af409a55d849012148da5e794a8545528c69e631915a4bee"],
+    ["runtime/sd-server.exe",1124864,"b131c16747bcb6116c630924109f15842c632aad4d95e8c826bfbab735343097"],
+    ["runtime/stable-diffusion.cpp.txt",1082,"4e76049398df734a97db46f3bd4b5cbc460cb5f6bfaf737cdc3d6fbb8ab3de27"],
+    ["runtime/stable-diffusion.dll",34934784,"8181267bd0268d6aeb32f55cf9df8f24732e7521ba2c5593149f22488a27bfd9"],
+    ["runtime/webm.dll",328192,"40465d6410acfdbfe0206c0b0ee04e96d6e7c4284a5189dff7bdf054465408db"]
+  ],
+  "notices": ["manifest.json","PROVENANCE.md","QWEN-APACHE-LICENSE.txt","Z-IMAGE-GGUF-README.md","VAE-PROVENANCE-README.md","LIBWEBM-LICENSE.TXT.txt","LIBWEBM-AUTHORS.TXT.txt","LIBWEBM-PATENTS.TXT.txt","LIBWEBP-COPYING.txt","LIBWEBP-AUTHORS.txt","LIBWEBP-PATENTS.txt","SDCPP-WEBUI-LICENSE.txt"]
+}
