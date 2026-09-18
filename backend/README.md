@@ -83,7 +83,7 @@ Once `ai_runtime_guard` has been created, it remains in the database even if liv
 
 Any table or foreign-key count must be recorded together with the inspected application version/commit and the database configuration used for that inspection.
 
-**Inspected version:** `2b25004cdbb296d9bba56f3695eb9e281eb4060a`
+**Inspected source version:** `c9fd07e74ea7ae389ce56158cb8180a45a4f798d` — recorded from the 17 September prepared package source review. This is assistant/source-review evidence and is not attributed to Imran developer verification, independent QA, or client acceptance.
 
 **Database configuration:** SQLite using `CRM_DATABASE_PATH`. The fresh application database count applies before live-AI initialization; the 11-table count applies after live-AI initialization creates `ai_runtime_guard`.
 
