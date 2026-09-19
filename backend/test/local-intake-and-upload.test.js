@@ -26,7 +26,12 @@ async function environment(t, options = {}) {
   }
   async function start() {
     db = createDatabase(filename);
-    const { app } = createApp({ db, imageConfig: {}, ...options });
+   const { app } = createApp({
+  db,
+  imageConfig: {},
+  campaignNow: () => new Date('2026-09-18T02:00:00Z'),
+  ...options
+});
     server = app.listen(0, '127.0.0.1');
     await once(server, 'listening');
     base = 'http://127.0.0.1:' + server.address().port;
