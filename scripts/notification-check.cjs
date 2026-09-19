@@ -55,6 +55,7 @@ async function main() {
     });
     await page.locator('[data-route="dashboard"]').click();
     await page.evaluate(() => window.notificationNavigation.then(() => true));
+    await settled();
   }
   async function deleteCampaign(campaign) {
     const [response] = await Promise.all([

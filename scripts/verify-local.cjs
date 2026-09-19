@@ -86,6 +86,7 @@ const suites = [
   ['launcher', ['--test', 'scripts/start-crm.test.cjs']],
   ['recovery', ['--test', 'scripts/recovery-check.test.cjs']],
   ['workflows', ['scripts/local-workflows-check.cjs']],
+  ['final-ui-runtime', ['scripts/final-ui-runtime-check.cjs']],
   ['access-browser', ['scripts/access-browser-check.cjs']]
 ];
 
