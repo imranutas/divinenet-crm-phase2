@@ -339,12 +339,27 @@ function openCampaign(c=null) {
   add("startDate","Start date",{type:"date",required:true,value:c?.startDate||today});
   add("endDate","End date",{type:"date",required:true,value:c?.endDate||plusDays(today,7),help:"New campaigns default to 7 calendar days after the start date. Both dates are editable."});
   let manualEnd=Boolean(c);
-  function validateStartDate() {
-    const today=campaignBusinessDate(),value=inputs.startDate.value;
-    const keepsHistory=Boolean(c&&value===c.startDate&&value<today);
-    inputs.startDate.min=keepsHistory?c.startDate:today;
-    inputs.startDate.setCustomValidity(!editing?.uncertain&&value&&value<today&&!keepsHistory?"Start date cannot be before today (Australia/Sydney).":"");
-    if(editing?.uncertain)inputs.startDate.removeAttribute("min");
+   function validateStartDate() {
+    const today = campaignBusinessDate();
+    const value = inputs.startDate.value;
+    const keepsHistory = Boolean(
+      c && value === c.startDate && value < today
+    );
+    const minimum = keepsHistory ? c.startDate : today;
+
+    if (editing?.uncertain) {
+      if (inputs.startDate.hasAttribute("min")) {
+        inputs.startDate.removeAttribute("min");
+      }
+    } else if (inputs.startDate.min !== minimum) {
+      inputs.startDate.min = minimum;
+    }
+
+    inputs.startDate.setCustomValidity(
+      !editing?.uncertain && value && value < today && !keepsHistory
+        ? "Start date cannot be before today (Australia/Sydney)."
+        : ""
+    );
   }
   editing.validateStartDate=validateStartDate;
   inputs.startDate.addEventListener("input",validateStartDate);

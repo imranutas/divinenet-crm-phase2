@@ -54,9 +54,9 @@ check("Lead CSV exports the filtered lead records", () => {
 });
 
 check("Filtered views distinguish no matches from an empty database", () => {
-  assert.match(apps, /No matching campaigns\./);
+  assert.match(apps, /empty\("No matching campaigns",/);
   assert.match(apps, /No matching leads\./);
-  assert.match(apps, /No campaigns have been created yet\./);
+  assert.match(apps, /empty\("No campaigns here yet",/);
   assert.match(apps, /No leads have been captured yet\./);
 });
 
