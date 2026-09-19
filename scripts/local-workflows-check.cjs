@@ -22,7 +22,7 @@ async function main(){
   async function save(){const responsePromise=page.waitForResponse(r=>r.url().endsWith('/api/campaigns')&&r.request().method()==='POST');await page.locator('#save-record').click();const response=await responsePromise;assert.equal(response.status(),201,await response.text());await page.locator('#editor').waitFor({state:'hidden'});return(await response.json()).data;}
 
   try{
-    instance=createApp({databasePath:path.join(temp,'isolated.sqlite'),imageConfig:{}});
+    instance=createApp({databasePath:path.join(temp,'isolated.sqlite'),imageConfig:{},campaignNow:()=>new Date('2026-09-19T02:00:00Z')});
     server=await new Promise((resolve,reject)=>{const s=instance.app.listen(0,'127.0.0.1',()=>resolve(s));s.on('error',reject);});
     base='http://127.0.0.1:'+server.address().port;
 
@@ -35,6 +35,7 @@ async function main(){
 
     context=await browser.newContext({viewport:{width:1440,height:1000}});
     page=await context.newPage();
+    await page.clock.setFixedTime(new Date('2026-09-19T02:00:00Z'));
 
     await check('New campaign starts today and ends seven local calendar days later',async()=>{
       await openNew('Synthetic local workflow campaign');

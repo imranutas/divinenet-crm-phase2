@@ -58,3 +58,15 @@ dialog.campaign-editor{width:min(1200px,calc(100% - 32px));background:var(--canv
   .campaign-editor .dialog-actions button{flex:1}
   .campaign-editor .dialog-actions{bottom:-16px}
 }
+
+/* Campaign library sections share the search, status filter and export. */
+.campaign-sections{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:24px}
+.campaign-section{display:flex;align-items:center;justify-content:space-between;gap:12px;min-width:0;min-height:86px;padding:18px;border:1px solid var(--line);border-radius:12px;background:var(--surface);color:var(--ink);text-align:left;cursor:pointer}
+.campaign-section:hover{background:#f1f6f2;border-color:#9bb8a9}
+.campaign-section[aria-pressed="true"]{background:#e9f0d9;border-color:#819c49;box-shadow:inset 0 0 0 1px #819c49}
+.campaign-section:focus-visible{outline:3px solid var(--teal);outline-offset:3px}
+.campaign-section-label{font-size:13px;font-weight:650;line-height:1.5}
+.campaign-section-count{font-size:26px;font-weight:650;line-height:1.2}
+.campaign-results-summary{margin:0 0 14px;color:var(--muted);font-size:12px}
+@media(max-width:1000px){.campaign-sections{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:400px){.campaign-section{padding:13px;min-height:76px;gap:8px}.campaign-section-count{font-size:23px}}

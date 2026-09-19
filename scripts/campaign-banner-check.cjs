@@ -61,14 +61,25 @@ async function main() {
     if (failNextGeneration) { failNextGeneration = false; throw new Error('Synthetic provider failure'); }
     return { bytes: png, provider: 'test-double', model: 'synthetic-browser-fixture' };
   } };
-  async function openStore(name, configured) {
-    const instance = createApp({ databasePath: path.join(temp, name + '.sqlite'), imageConfig: {}, ...(configured ? { imageProvider: provider } : {}) });
-    const server = await new Promise((resolve, reject) => {
-      const listener = instance.app.listen(0, '127.0.0.1', () => resolve(listener)); listener.on('error', reject);
-    });
-    const store = { db: instance.db, server, base: 'http://127.0.0.1:' + server.address().port };
-    stores.push(store); return store;
-  }
+ async function openStore(name, configured) {
+  const instance = createApp({
+    databasePath: path.join(temp, name + '.sqlite'),
+    imageConfig: {},
+    campaignNow: () => new Date('2026-09-15T02:00:00Z'),
+    ...(configured ? { imageProvider: provider } : {})
+  });
+  const server = await new Promise((resolve, reject) => {
+    const listener = instance.app.listen(0, '127.0.0.1', () => resolve(listener));
+    listener.on('error', reject);
+  });
+  const store = {
+    db: instance.db,
+    server,
+    base: 'http://127.0.0.1:' + server.address().port
+  };
+  stores.push(store);
+  return store;
+}
   async function records(route) {
     const response = await fetch(base + '/api/' + route);
     assert.ok(response.ok, 'GET ' + route + ' must succeed');
@@ -135,6 +146,7 @@ async function main() {
     context = await browser.newContext({ viewport: { width: 1440, height: 1050 }, acceptDownloads: true });
     await context.route('**/*', route => stores.some(store => route.request().url().startsWith(store.base + '/')) ? route.continue() : route.abort());
     page = await context.newPage(); page.setDefaultTimeout(7000); page.on('dialog', dialog => dialog.accept());
+    await page.clock.setFixedTime(new Date('2026-09-15T02:00:00Z'));
     await check('Generate, preview and approve before saving one campaign with one linked approved banner', async () => {
       await openNew('Synthetic campaign with reviewed banner');
       assert.match(JSON.stringify(await records('ai/status')), /test-double/);

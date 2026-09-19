@@ -123,7 +123,8 @@ async function main() {
   try {
     const instance = createApp({
       databasePath: path.join(temp, 'final-ui.sqlite'),
-      imageConfig: {}
+      imageConfig: {},
+      campaignNow: () => new Date('2026-09-19T02:00:00Z')
     });
 
     db = instance.db;
@@ -153,6 +154,7 @@ async function main() {
     );
 
     page = await context.newPage();
+    await page.clock.setFixedTime(new Date('2026-09-19T02:00:00Z'));
     page.on('dialog', dialog => dialog.accept());
 
     await page.goto(base);

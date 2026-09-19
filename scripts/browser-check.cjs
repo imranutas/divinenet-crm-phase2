@@ -33,7 +33,11 @@ async function main() {
     }
   }
   try {
-    const instance = createApp({ databasePath: path.join(temp, 'browser.sqlite'), imageConfig: {} });
+    const instance = createApp({   
+      databasePath: path.join(temp, 'browser.sqlite'),   
+      imageConfig: {},   
+      campaignNow: () => new Date('2026-09-15T02:00:00Z') 
+    });
     db = instance.db;
     server = await new Promise((resolve, reject) => {
       const listener = instance.app.listen(0, '127.0.0.1', () => resolve(listener));
@@ -44,6 +48,7 @@ async function main() {
     const context = await browser.newContext({ viewport: { width: 1440, height: 1000 } });
     await context.route('**/*', route => route.request().url().startsWith(base) ? route.continue() : route.abort());
     page = await context.newPage();
+    await page.clock.setFixedTime(new Date('2026-09-15T02:00:00Z'));
     page.on('dialog', dialog => dialog.accept());
     const records = async name => (await (await fetch(base + '/api/' + name)).json()).data;
     let campaign, lead;

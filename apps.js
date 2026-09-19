@@ -9,6 +9,10 @@ let loadVersion=0, editing=null, saving=false, objectUrl=null;
 let connectionError="";
 const canWrite=()=>window.CRMAuth?.canWrite!==false;
 function localDate(date=new Date()) {return [date.getFullYear(),String(date.getMonth()+1).padStart(2,"0"),String(date.getDate()).padStart(2,"0")].join("-");}
+function campaignBusinessDate(date=new Date()) {
+  const parts=new Intl.DateTimeFormat("en-AU",{timeZone:"Australia/Sydney",year:"numeric",month:"2-digit",day:"2-digit"}).formatToParts(date);
+  return ["year","month","day"].map(type=>parts.find(part=>part.type===type).value).join("-");
+}
 function plusDays(value,days){const date=new Date(value+"T12:00:00");date.setDate(date.getDate()+days);return Number.isFinite(date.getTime())?localDate(date):"";}
 function exportCsv(name,headers,rows){
   const cell=value=>'"'+String(value??"").replace(/^([\s]*[=+@-])/u,"'$1").replace(/^[\t\r\n]/u,"'$&").replace(/"/g,'""')+'"';
@@ -205,7 +209,8 @@ function renderCampaigns() {
   state.filters ??= {};
   const p=panel("Campaign library"),filters=node("div",null,"filters");
   const search=field("campaign-search","Search campaigns",{value:state.filters.campaignSearch||"",help:"Search by name, client, brand or ID."});
-  const status=field("campaign-status","Status",{value:state.filters.campaignStatus||"All statuses",options:["All statuses",...statuses]});
+  // These are library views, not new editable states or a publishing confirmation.
+  const status=field("campaign-status","Status",{value:state.filters.campaignStatus||"All statuses",options:["All statuses","Draft","Scheduled","Published",...statuses.filter(value=>value!=="Draft")]});
   let filteredCampaigns=[];
 
   const download=button("Export filtered results",()=>exportCsv(
@@ -216,8 +221,18 @@ function renderCampaigns() {
   download.id="export-campaigns";
   p.firstChild.append(download);
 
+  const sections=node("div",null,"campaign-sections");sections.setAttribute("role","group");sections.setAttribute("aria-label","Campaign sections");
+  const sectionButtons=[];
+  for(const [value,label] of [["All statuses","All campaigns"],["Draft","Draft"],["Scheduled","Scheduled"],["Published","Published"]]) {
+    const count=value==="All statuses"?state.campaigns.length:state.campaigns.filter(c=>c.status===value).length;
+    const control=button("",()=>{status.input.value=value;show();},"campaign-section");
+    control.dataset.campaignSection=value;control.setAttribute("aria-controls","campaign-results");
+    control.append(node("span",label,"campaign-section-label"),node("strong",count,"campaign-section-count"));
+    sections.append(control);sectionButtons.push([value,control]);
+  }
   filters.append(search.label,status.label);
-  const results=node("div");
+  const summary=node("p",null,"campaign-results-summary");summary.setAttribute("role","status");summary.setAttribute("aria-live","polite");
+  const results=node("div");results.id="campaign-results";
 
   function show() {
     state.filters.campaignSearch=search.input.value;
@@ -229,20 +244,22 @@ function renderCampaigns() {
       [c.campaignName,c.client,c.brand,c.id].some(x=>String(x||"").toLowerCase().includes(q))
     );
 
+    for(const [value,control] of sectionButtons)control.setAttribute("aria-pressed",String(status.input.value===value));
     download.disabled=!filteredCampaigns.length;
-
-    if(!state.campaigns.length) {
-      results.replaceChildren(node("p","No campaigns have been created yet.","muted"));
-    } else if(!filteredCampaigns.length) {
-      results.replaceChildren(node("p","No matching campaigns.","muted"));
-    } else {
-      results.replaceChildren(campaignTable(filteredCampaigns));
-    }
+    const selected=status.input.value==="All statuses"?"All campaigns":status.input.value+" campaigns";
+    summary.textContent=selected+" · "+filteredCampaigns.length+(filteredCampaigns.length===1?" result":" results");
+    if(filteredCampaigns.length)results.replaceChildren(campaignTable(filteredCampaigns));
+    else if(q)results.replaceChildren(empty("No matching campaigns","Try a different search or choose another section."));
+    else if(status.input.value==="Scheduled")results.replaceChildren(empty("Nothing scheduled yet","Campaigns scheduled for publishing will appear here."));
+    else if(status.input.value==="Published")results.replaceChildren(empty("No published campaigns","Campaigns with confirmed publication will appear here."));
+    else if(status.input.value==="Draft")results.replaceChildren(empty("No draft campaigns","Create a campaign and save it as a draft."));
+    else if(!state.campaigns.length)results.replaceChildren(empty("No campaigns here yet","Create your first campaign to get started."));
+    else results.replaceChildren(empty("No "+status.input.value.toLowerCase()+" campaigns","Choose another section to view your campaigns."));
   }
 
   search.input.addEventListener("input",show);
   status.input.addEventListener("change",show);
-  p.append(filters,results);
+  p.append(sections,filters,summary,results);
   $("view").append(p);
   show();
 }
@@ -318,10 +335,21 @@ function openCampaign(c=null) {
     if(value!==null&&!Number.isNaN(value))budget.input.value=String(value);
   });
   budget.input.addEventListener("input",()=>budget.input.setCustomValidity(""));
-  const today=localDate();
+  const today=campaignBusinessDate();
   add("startDate","Start date",{type:"date",required:true,value:c?.startDate||today});
   add("endDate","End date",{type:"date",required:true,value:c?.endDate||plusDays(today,7),help:"New campaigns default to 7 calendar days after the start date. Both dates are editable."});
   let manualEnd=Boolean(c);
+  function validateStartDate() {
+    const today=campaignBusinessDate(),value=inputs.startDate.value;
+    const keepsHistory=Boolean(c&&value===c.startDate&&value<today);
+    inputs.startDate.min=keepsHistory?c.startDate:today;
+    inputs.startDate.setCustomValidity(!editing?.uncertain&&value&&value<today&&!keepsHistory?"Start date cannot be before today (Australia/Sydney).":"");
+    if(editing?.uncertain)inputs.startDate.removeAttribute("min");
+  }
+  editing.validateStartDate=validateStartDate;
+  inputs.startDate.addEventListener("input",validateStartDate);
+  inputs.startDate.addEventListener("change",validateStartDate);
+  validateStartDate();
   inputs.endDate.addEventListener("input",()=>{manualEnd=true;});
   inputs.startDate.addEventListener("change",()=>{if(!manualEnd&&inputs.startDate.value)inputs.endDate.value=plusDays(inputs.startDate.value,7);});
   const schedule=node("p","Select dates to check for overlapping active campaigns.","callout full");schedule.id="campaign-schedule-note";fields.append(schedule);
@@ -530,6 +558,8 @@ function openLead(lead=null) {
 }
 $("record-form").addEventListener("submit",async event=>{
   event.preventDefault();if(!editing||saving||editing.banner?.busy)return;
+  editing.validateStartDate?.();
+  if(!event.currentTarget.reportValidity())return;
   clearActionMessages();
   const data=Object.fromEntries(new FormData(event.currentTarget));const current={...editing};
   if(current.kind==="campaign"){
@@ -558,6 +588,7 @@ $("record-form").addEventListener("submit",async event=>{
     message("notice",(current.kind==="campaign"?"Campaign ":"Lead ")+saved.id+" saved to the database.");await refresh();
   } catch(error){
     if(editing)editing.uncertain=current.kind==="campaign"&&Boolean(error.uncertain);
+    editing?.validateStartDate?.();
     const recoverable=Boolean(editing?.uncertain);
     message("form-error",recoverable?"The campaign save could not be confirmed. Values are temporarily locked. Select Retry campaign save to recover the same request without creating a duplicate, or close and check the campaign list.":error.message);
     $("save-state").textContent="Save not confirmed. Your input is retained.";
