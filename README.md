@@ -10,7 +10,7 @@ Run START-CRM.cmd, then open **http://127.0.0.1:3192/** and set up your administ
 - STOP-CRM.cmd: safely stop this copy.
 - BACKUP-CRM.cmd: new validated database snapshot.
 - RESTORE-CRM.cmd "backup path": validate; add --apply after stopping to restore while retaining prior files.
-- `npm.cmd test`: runs the API, browser, notification and banner verification checks. Source hashes, logs and results are saved under `test-evidence/`.
+- `npm run verify` depends on the pending PR22 backend corrections and must be verified against the eventual accepted combined version. Browser checks use Chromium by default; Edge is used only when explicitly selected. Source hashes, logs and results are saved under `test-evidence/`.
 - Genuine AI verification is separate: set `CRM_TEST_LIVE_AI=true` and run `node scripts/access-browser-check.cjs` with the reviewed runtime running. Do not overlap inference tests.
 
 Final launcher: `http://127.0.0.1:3192/` using `data/divinenet.sqlite`.
