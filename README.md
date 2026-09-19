@@ -4,13 +4,20 @@ Modern local campaign and lead workspace with SQLite storage, inline reviewed AI
 
 Run START-CRM.cmd, then open **http://127.0.0.1:3192/** and set up your administrator account. See [START_HERE.md](START_HERE.md) for use, backup, recovery and scope.
 
-- Node.js24; bundled matching Windowsx64 dependencies.
+- Node.js 24 and npm are required.
+- For a fresh source checkout, run `npm.cmd ci` and `npm.cmd --prefix backend ci` before starting the CRM.
+- Browser verification additionally requires `npx.cmd playwright install chromium`.
 - STOP-CRM.cmd: safely stop this copy.
 - BACKUP-CRM.cmd: new validated database snapshot.
 - RESTORE-CRM.cmd "backup path": validate; add --apply after stopping to restore while retaining prior files.
 - npm run verify: serial backend/browser/notification/banner/startup/recovery/intake/access checks using Edge. Source hashes, logs and results are saved under test-evidence/.
 - Genuine AI verification is separate: set CRM_TEST_LIVE_AI=true and run node scripts/access-browser-check.cjs with the reviewed runtime running. Do not overlap inference tests.
 
-Working data: data/divinenet.sqlite. Local CRM3192, local image runtime1234. No automatic model download or paid service.
+Final launcher: `http://127.0.0.1:3192/` using `data/divinenet.sqlite`.
+
+Standalone backend debugging is separate: `http://127.0.0.1:3194/` using `backend\db\local-review.sqlite`. See `backend\README.md` for its environment and startup commands.
+
+The AI model/runtime is not included in the source package and is not downloaded automatically.
 
 External Phase1/customer/appointment services, direct social publishing and public deployment are excluded. Independent QA/client acceptance remain separate from engineering verification. Original member submissions are preserved; this local assembly is not a new GitHub commit.
+
