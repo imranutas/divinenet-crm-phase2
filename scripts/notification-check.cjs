@@ -93,7 +93,11 @@ async function main() {
     } finally { await page.unroute('**/api/campaigns').catch(() => {}); }
   }
   try {
-    const instance = createApp({ databasePath: path.join(temp, 'notifications.sqlite'), imageConfig: {} });
+const instance = createApp({
+  databasePath: path.join(temp, 'notifications.sqlite'),
+  imageConfig: {},
+  campaignNow: () => new Date('2026-09-15T02:00:00Z')
+});
     db = instance.db;
     server = await new Promise((resolve, reject) => {
       const listener = instance.app.listen(0, '127.0.0.1', () => resolve(listener));
