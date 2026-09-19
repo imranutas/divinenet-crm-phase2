@@ -119,7 +119,7 @@ const suites = [
       });
 
       child.once('error', reject);
-      child.once('exit', resolve);
+      child.once('close', resolve);
     });
 
     fs.writeFileSync(
