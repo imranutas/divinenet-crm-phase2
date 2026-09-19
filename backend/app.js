@@ -151,7 +151,9 @@ function createApp(options = {}) {
     for (const field of ['client', 'brand']) {
       if (Object.hasOwn(body, field + 'Id') && !Object.hasOwn(body, field)) updated[field] = '';
     }
-    const error = validateCampaign(updated);
+    const error = validateCampaign(updated, {
+  existingStartDate: current.startDate
+});
     if (error) return fail(res, 400, error);
     updated.budget = parseBudget(updated.budget);
     for (const field of ['campaignName', 'prompt', 'client', 'brand', 'objective', 'targetAudience']) {
