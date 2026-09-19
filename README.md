@@ -10,8 +10,8 @@ Run START-CRM.cmd, then open **http://127.0.0.1:3192/** and set up your administ
 - STOP-CRM.cmd: safely stop this copy.
 - BACKUP-CRM.cmd: new validated database snapshot.
 - RESTORE-CRM.cmd "backup path": validate; add --apply after stopping to restore while retaining prior files.
-- `npm run verify`: serial backend, browser, notification, banner, launcher, recovery, workflow, frontend-runtime, campaign-date and access checks. Chromium is the default; select Edge explicitly with `$env:CRM_BROWSER_CHANNEL='msedge'` in PowerShell. Source hashes and results are saved under `test-evidence/`.
-- Run `npm run test:integration-prep` separately for the synthetic integration-contract checks.
+- `npm.cmd run verify`: serial backend, browser, notification, banner, launcher, recovery, workflow, frontend-runtime, campaign-date and access checks. Chromium is the default; select Edge explicitly with `$env:CRM_BROWSER_CHANNEL='msedge'` in PowerShell. Source hashes and results are saved under `test-evidence/`.
+- Run `npm.cmd run test:integration-prep` separately for the synthetic integration-contract checks.
 - Genuine AI verification is separate: set CRM_TEST_LIVE_AI=true and run node scripts/access-browser-check.cjs with the reviewed runtime running. Do not overlap inference tests.
 
 Working data: `data/divinenet.sqlite`. Local CRM: port 3192; separately configured image runtime: port 1234. The model/runtime is not included or downloaded automatically. Standalone backend debugging uses port 3194 and `backend/db/local-review.sqlite`; see `backend/README.md`.
