@@ -61,14 +61,25 @@ async function main() {
     if (failNextGeneration) { failNextGeneration = false; throw new Error('Synthetic provider failure'); }
     return { bytes: png, provider: 'test-double', model: 'synthetic-browser-fixture' };
   } };
-  async function openStore(name, configured) {
-    const instance = createApp({ databasePath: path.join(temp, name + '.sqlite'), imageConfig: {}, ...(configured ? { imageProvider: provider } : {}) });
-    const server = await new Promise((resolve, reject) => {
-      const listener = instance.app.listen(0, '127.0.0.1', () => resolve(listener)); listener.on('error', reject);
-    });
-    const store = { db: instance.db, server, base: 'http://127.0.0.1:' + server.address().port };
-    stores.push(store); return store;
-  }
+ async function openStore(name, configured) {
+  const instance = createApp({
+    databasePath: path.join(temp, name + '.sqlite'),
+    imageConfig: {},
+    campaignNow: () => new Date('2026-09-15T02:00:00Z'),
+    ...(configured ? { imageProvider: provider } : {})
+  });
+  const server = await new Promise((resolve, reject) => {
+    const listener = instance.app.listen(0, '127.0.0.1', () => resolve(listener));
+    listener.on('error', reject);
+  });
+  const store = {
+    db: instance.db,
+    server,
+    base: 'http://127.0.0.1:' + server.address().port
+  };
+  stores.push(store);
+  return store;
+}
   async function records(route) {
     const response = await fetch(base + '/api/' + route);
     assert.ok(response.ok, 'GET ' + route + ' must succeed');
