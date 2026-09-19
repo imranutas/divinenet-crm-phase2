@@ -149,32 +149,102 @@ function campaignTable(records,limited=false) {
   return wrap;
 }
 function renderDashboard() {
-  const metrics=node("section",null,"metrics");metrics.setAttribute("aria-label","Stored record summary");
-  const active=state.campaigns.filter(c=>c.status==="Active").length,qualified=state.leads.filter(l=>l.stage==="Qualified").length;
-  for(const [label,value,caption] of [["Total campaigns",state.campaigns.length,"All stored campaign records"],["Active campaigns",active,"Records marked Active"],["Captured leads",state.leads.length,"Records, not unique customers"],["Qualified leads",qualified,"Development pipeline stage"]]) {
-    const card=node("article",null,"metric");card.append(node("span",label,"metric-label"),node("strong",value,"metric-value"),node("small",caption));metrics.append(card);
+  const analytics = state.analytics || {};
+  const totalCampaigns = analytics.totalCampaigns ?? 0;
+  const activeCampaigns = analytics.activeCampaigns ?? 0;
+  const totalLeads = analytics.totalLeads ?? 0;
+  const qualifiedLeads = analytics.qualifiedLeads ?? 0;
+  const leadsByStage = analytics.leadsByStage || {};
+  const qualificationRate = analytics.qualificationRate;
+
+  const metrics=node("section",null,"metrics");
+  metrics.setAttribute("aria-label","Stored record summary");
+
+  for(const [label,value,caption] of [
+    ["Total campaigns",totalCampaigns,"All stored campaign records"],
+    ["Active campaigns",activeCampaigns,"Records marked Active"],
+    ["Captured leads",totalLeads,"Records, not unique customers"],
+    ["Qualified leads",qualifiedLeads,"Development pipeline stage"]
+  ]) {
+    const card=node("article",null,"metric");
+    card.append(node("span",label,"metric-label"),node("strong",value,"metric-value"),node("small",caption));
+    metrics.append(card);
   }
+
   const grid=node("div",null,"overview-grid"),recent=panel("Recent campaigns");
-  recent.firstChild.append(link("View all campaigns →","#campaigns"));recent.append(campaignTable(state.campaigns.slice(0,5),true));
+  recent.firstChild.append(link("View all campaigns →","#campaigns"));
+  recent.append(campaignTable(state.campaigns.slice(0,5),true));
+
   const stack=node("div",null,"stack"),pipeline=panel("Lead snapshot");
-  for(const stage of stages) {const line=node("div",null,"summary-line");line.append(badge(stage),node("strong",state.leads.filter(l=>l.stage===stage).length));pipeline.append(line);}
-  const rate=node("div",null,"summary-line");rate.append(node("span","Qualification rate"),node("strong",state.leads.length?(qualified/state.leads.length*100).toFixed(1)+"%":"N/A"));pipeline.append(rate);
+  for(const stage of stages) {
+    const line=node("div",null,"summary-line");
+    line.append(badge(stage),node("strong",leadsByStage[stage] ?? 0));
+    pipeline.append(line);
+  }
+
+  const rate=node("div",null,"summary-line");
+  rate.append(
+    node("span","Qualification rate"),
+    node("strong",qualificationRate === null || qualificationRate === undefined ? "N/A" : Number(qualificationRate).toFixed(2)+"%")
+  );
+  pipeline.append(rate);
+
   pipeline.append(node("p","Qualified lead records ÷ all lead records. An operational measure, not customer conversion. Counts reflect all currently stored records; performance targets are not yet configured.","muted"));
-  const studio=panel("Your brief and banner, together");studio.append(node("p","Create or edit a campaign to generate, review and save its banner in the same form. "+state.ai.message,"muted"),link("Open campaigns →","#campaigns"));
-  stack.append(pipeline,studio);grid.append(recent,stack);$("view").append(metrics,grid);
+
+  const studio=panel("Your brief and banner, together");
+  studio.append(
+    node("p","Create or edit a campaign to generate, review and save its banner in the same form. "+state.ai.message,"muted"),
+    link("Open campaigns →","#campaigns")
+  );
+
+  stack.append(pipeline,studio);
+  grid.append(recent,stack);
+  $("view").append(metrics,grid);
 }
 function renderCampaigns() {
+  state.filters ??= {};
   const p=panel("Campaign library"),filters=node("div",null,"filters");
-  const download=button("Export campaigns CSV",()=>exportCsv("campaigns",["ID","Campaign","Client","Brand","Channel","Status","Start date","End date","Budget AUD"],state.campaigns.map(c=>[c.id,c.campaignName,c.client,c.brand,c.channel,c.status,c.startDate,c.endDate,c.budget])));download.id="export-campaigns";p.firstChild.append(download);
-  const search=field("campaign-search","Search campaigns",{help:"Search by name, client, brand or ID."});
-  const status=field("campaign-status","Status",{value:"All statuses",options:["All statuses",...statuses]});
-  filters.append(search.label,status.label);const results=node("div");
+  const search=field("campaign-search","Search campaigns",{value:state.filters.campaignSearch||"",help:"Search by name, client, brand or ID."});
+  const status=field("campaign-status","Status",{value:state.filters.campaignStatus||"All statuses",options:["All statuses",...statuses]});
+  let filteredCampaigns=[];
+
+  const download=button("Export filtered results",()=>exportCsv(
+    "campaigns",
+    ["ID","Campaign","Client","Brand","Channel","Status","Start date","End date","Budget AUD"],
+    filteredCampaigns.map(c=>[c.id,c.campaignName,c.client,c.brand,c.channel,c.status,c.startDate,c.endDate,c.budget])
+  ));
+  download.id="export-campaigns";
+  p.firstChild.append(download);
+
+  filters.append(search.label,status.label);
+  const results=node("div");
+
   function show() {
+    state.filters.campaignSearch=search.input.value;
+    state.filters.campaignStatus=status.input.value;
+
     const q=search.input.value.toLowerCase().trim();
-    const rows=state.campaigns.filter(c=>(status.input.value==="All statuses"||c.status===status.input.value)&&[c.campaignName,c.client,c.brand,c.id].some(x=>String(x||"").toLowerCase().includes(q)));
-    results.replaceChildren(campaignTable(rows));
+    filteredCampaigns=state.campaigns.filter(c=>
+      (status.input.value==="All statuses"||c.status===status.input.value)&&
+      [c.campaignName,c.client,c.brand,c.id].some(x=>String(x||"").toLowerCase().includes(q))
+    );
+
+    download.disabled=!filteredCampaigns.length;
+
+    if(!state.campaigns.length) {
+      results.replaceChildren(node("p","No campaigns have been created yet.","muted"));
+    } else if(!filteredCampaigns.length) {
+      results.replaceChildren(node("p","No matching campaigns.","muted"));
+    } else {
+      results.replaceChildren(campaignTable(filteredCampaigns));
+    }
   }
-  search.input.addEventListener("input",show);status.input.addEventListener("change",show);p.append(filters,results);$("view").append(p);show();
+
+  search.input.addEventListener("input",show);
+  status.input.addEventListener("change",show);
+  p.append(filters,results);
+  $("view").append(p);
+  show();
 }
 async function removeCampaign(c,btn) {
   if(!confirm('Delete "'+c.campaignName+'"? Linked leads or assets prevent deletion.'))return;
@@ -225,6 +295,7 @@ function openCampaign(c=null) {
         inputs[name].setCustomValidity("");
       }
       for(const kind of ["client","brand"])inputs[kind+"Id"].dispatchEvent(new Event("change"));
+      inputs.channel.dispatchEvent(new Event("change"));
       previousSource=source.input.value;
       previousContext=Object.fromEntries(names.map(name=>[name,inputs[name].value]));
       editing?.banner?.contextChanged();
@@ -495,27 +566,92 @@ $("record-form").addEventListener("submit",async event=>{
   finally{saving=false;$("form-fields").inert=Boolean(editing?.uncertain);$("save-record").disabled=false;}
 });
 function renderLeads() {
-  const note=node("div","Development pipeline: New → Contacted → Qualified. Stage transitions are recorded. Scoring policy and Phase 1 conversion are not approved or connected; no lead is marked Converted.","callout warning");$("view").append(note);
-  const filters=node("div",null,"filters section-gap"),search=field("lead-search","Search leads"),campaign=field("lead-campaign","Campaign",{options:[{value:"",label:"All campaigns"},...state.campaigns.map(c=>({value:c.id,label:c.campaignName}))]});
-  filters.append(search.label,campaign.label);const results=node("div");
-  const download=button("Export leads CSV",()=>exportCsv("leads",["ID","Campaign ID","Name","Email","Phone","Source","Consent","Stage"],state.leads.map(l=>[l.id,l.campaignId,l.name,l.email,l.phone,l.sourcePlatform,l.consentStatus,l.stage])));download.id="export-leads";filters.append(download);
+  state.filters ??= {};
+
+  const note=node("div","Development pipeline: New → Contacted → Qualified. Stage transitions are recorded. Scoring policy and Phase 1 conversion are not approved or connected; no lead is marked Converted.","callout warning");
+  $("view").append(note);
+
+  const filters=node("div",null,"filters section-gap");
+  const search=field("lead-search","Search leads",{value:state.filters.leadSearch||""});
+  const campaign=field("lead-campaign","Campaign",{
+    value:state.filters.leadCampaign||"",
+    options:[{value:"",label:"All campaigns"},...state.campaigns.map(c=>({value:c.id,label:c.campaignName}))]
+  });
+
+  let filteredLeads=[];
+
+  const download=button("Export filtered results",()=>exportCsv(
+    "leads",
+    ["ID","Campaign ID","Name","Email","Phone","Source","Consent","Stage"],
+    filteredLeads.map(l=>[l.id,l.campaignId,l.name,l.email,l.phone,l.sourcePlatform,l.consentStatus,l.stage])
+  ));
+  download.id="export-leads";
+
+  filters.append(search.label,campaign.label,download);
+  const results=node("div");
+
   function show() {
+    state.filters.leadSearch=search.input.value;
+    state.filters.leadCampaign=campaign.input.value;
+
     const q=search.input.value.toLowerCase().trim();
-    const leads=state.leads.filter(l=>(!campaign.input.value||l.campaignId===campaign.input.value)&&[l.id,l.name,l.email].some(x=>String(x).toLowerCase().includes(q)));
-    const pipeline=node("div",null,"pipeline");
-    for(const stage of stages){
-      const column=node("section",null,"pipeline-column"),rows=leads.filter(l=>l.stage===stage),heading=node("h2",stage);heading.append(node("span",rows.length));column.append(heading);
-      if(!rows.length)column.append(node("p","No leads in this stage.","muted"));
-      for(const lead of rows) {
-        const card=node("article",null,"lead-card");card.append(node("h3",lead.name),node("p",lead.email),node("p",lead.id+" · "+campaignName(lead.campaignId)),badge(lead.sourcePlatform),node("p","Consent: "+lead.consentStatus));if(canWrite())card.append(button("Edit",()=>openLead(lead)));card.append(button("History",()=>viewHistory(lead)));
-        const next=stages[stages.indexOf(stage)+1];
-        if(next&&canWrite())card.append(button("Move to "+next,event=>advanceLead(lead,next,event.currentTarget)));
-        column.append(card);
-      }pipeline.append(column);
+    filteredLeads=state.leads.filter(l=>
+      (!campaign.input.value||l.campaignId===campaign.input.value)&&
+      [l.id,l.name,l.email].some(x=>String(x||"").toLowerCase().includes(q))
+    );
+
+    download.disabled=!filteredLeads.length;
+
+    if(!state.leads.length) {
+      results.replaceChildren(node("p","No leads have been captured yet.","muted"));
+      return;
     }
+
+    if(!filteredLeads.length) {
+      results.replaceChildren(node("p","No matching leads.","muted"));
+      return;
+    }
+
+    const pipeline=node("div",null,"pipeline");
+
+    for(const stage of stages){
+      const column=node("section",null,"pipeline-column");
+      const rows=filteredLeads.filter(l=>l.stage===stage);
+      const heading=node("h2",stage);
+      heading.append(node("span",rows.length));
+      column.append(heading);
+
+      if(!rows.length) column.append(node("p","No leads in this stage.","muted"));
+
+      for(const lead of rows) {
+        const card=node("article",null,"lead-card");
+        card.append(
+          node("h3",lead.name),
+          node("p",lead.email),
+          node("p",lead.id+" · "+campaignName(lead.campaignId)),
+          badge(lead.sourcePlatform),
+          node("p","Consent: "+lead.consentStatus)
+        );
+
+        if(canWrite()) card.append(button("Edit",()=>openLead(lead)));
+        card.append(button("History",()=>viewHistory(lead)));
+
+        const next=stages[stages.indexOf(stage)+1];
+        if(next&&canWrite()) card.append(button("Move to "+next,event=>advanceLead(lead,next,event.currentTarget)));
+
+        column.append(card);
+      }
+
+      pipeline.append(column);
+    }
+
     results.replaceChildren(pipeline);
   }
-  search.input.addEventListener("input",show);campaign.input.addEventListener("change",show);$("view").append(filters,results);show();
+
+  search.input.addEventListener("input",show);
+  campaign.input.addEventListener("change",show);
+  $("view").append(filters,results);
+  show();
 }
 async function advanceLead(lead,stage,btn){
   if(!confirm("Move "+lead.name+" to "+stage+"? This development transition is recorded in history."))return;
@@ -572,3 +708,6 @@ window.addEventListener("hashchange",()=>{
 // Responses can arrive from the separate lead-form tab. Re-read saved data when returning.
 window.addEventListener("focus",()=>{if(state.ready&&!$("editor").open&&!saving&&!document.hidden)refresh();});
 Promise.resolve(window.CRMAuth?.ready).then(access=>{if(!access||access.enabled===false||access.authenticated)refresh();else if(access.error)message("global-error",access.error);});
+
+
+
