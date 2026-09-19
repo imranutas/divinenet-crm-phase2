@@ -41,6 +41,10 @@ function toApiLead(row) {
 
 function createApp(options = {}) {
   const app = express();
+
+  // Tests can supply a controlled business clock.
+  // Normal application startup uses the actual current time.
+    const campaignNow = options.campaignNow ?? (() => new Date());
   const db = options.db || createDatabase(options.databasePath);
   runMigrations(db);
   const campaigns = createCampaignRepository(db);
@@ -126,7 +130,9 @@ function createApp(options = {}) {
     const body = req.body;
 
     const result = saveCampaign('create', body, () => {
-      const error = validateCampaign(body);
+     const error = validateCampaign(body, {
+  now: campaignNow()
+});
       if (error) {
         throw Object.assign(new Error(error), { status: 400 });
       }
@@ -170,10 +176,10 @@ function createApp(options = {}) {
       if (Object.hasOwn(body, field + 'Id') && !Object.hasOwn(body, field)) updated[field] = '';
     }
       const result = saveCampaign('update:' + req.params.id, body, () => {
-      const error = validateCampaign(updated, {
-        existingStartDate: current.startDate
-      });
-
+ const error = validateCampaign(updated, {
+  existingStartDate: current.startDate,
+  now: campaignNow()
+});
       if (error) {
         throw Object.assign(new Error(error), { status: 400 });
       }
