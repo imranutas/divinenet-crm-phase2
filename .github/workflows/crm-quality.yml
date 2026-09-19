@@ -37,7 +37,7 @@ jobs:
         env:
           CRM_TEST_EXECUTOR: GitHub Actions developer verification
           CRM_TEST_LIVE_AI: "false"
-        run: npm test
+        run: npm run verify
 
       - name: Run integration preparation tests
         env:

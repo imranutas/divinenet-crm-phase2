@@ -38,7 +38,11 @@ async function isolatedStore(t) {
     assert.equal(db, undefined, 'Close the previous database before opening another');
     db = createDatabase(ownedFile(name));
     // createApp runs the real migrations and normal startup, without sample seeds.
-    const { app } = createApp({ db, imageConfig: {} });
+    const { app } = createApp({  
+      db,  
+      imageConfig: {},   
+      campaignNow: () => new Date('2026-09-12T02:00:00Z') 
+    });
     server = app.listen(0, '127.0.0.1');
     await once(server, 'listening');
     base = 'http://127.0.0.1:' + server.address().port;
@@ -186,6 +190,7 @@ test('cold restore preserves approved banner and save-request receipt without du
     db = createDatabase(filename);
     const { app } = createApp({
       db,
+      campaignNow: () => new Date('2026-09-12T02:00:00Z'),
       imageConfig: {},
       imageProvider: {
         provider: 'test-double',

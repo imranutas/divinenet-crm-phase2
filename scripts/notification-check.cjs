@@ -55,6 +55,7 @@ async function main() {
     });
     await page.locator('[data-route="dashboard"]').click();
     await page.evaluate(() => window.notificationNavigation.then(() => true));
+    await settled();
   }
   async function deleteCampaign(campaign) {
     const [response] = await Promise.all([
@@ -93,7 +94,11 @@ async function main() {
     } finally { await page.unroute('**/api/campaigns').catch(() => {}); }
   }
   try {
-    const instance = createApp({ databasePath: path.join(temp, 'notifications.sqlite'), imageConfig: {} });
+const instance = createApp({
+  databasePath: path.join(temp, 'notifications.sqlite'),
+  imageConfig: {},
+  campaignNow: () => new Date('2026-09-15T02:00:00Z')
+});
     db = instance.db;
     server = await new Promise((resolve, reject) => {
       const listener = instance.app.listen(0, '127.0.0.1', () => resolve(listener));
@@ -106,6 +111,7 @@ async function main() {
     const context = await browser.newContext({ viewport: { width: 1440, height: 1000 } });
     await context.route('**/*', route => route.request().url().startsWith(base) ? route.continue() : route.abort());
     page = await context.newPage();
+    await page.clock.setFixedTime(new Date('2026-09-15T02:00:00Z'));
     page.setDefaultTimeout(5000);
     if (flag !== -1) await page.route('**/apps.js', route => route.fulfill({ status: 200, contentType: 'application/javascript', body: script }));
     page.on('dialog', dialog => dialog.accept());

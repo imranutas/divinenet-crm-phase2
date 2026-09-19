@@ -41,6 +41,10 @@ function toApiLead(row) {
 
 function createApp(options = {}) {
   const app = express();
+
+  // Tests can supply a controlled business clock.
+  // Normal application startup uses the actual current time.
+    const campaignNow = options.campaignNow ?? (() => new Date());
   const db = options.db || createDatabase(options.databasePath);
   runMigrations(db);
   const campaigns = createCampaignRepository(db);
@@ -124,17 +128,37 @@ function createApp(options = {}) {
   });
   app.post('/api/campaigns', (req, res) => {
     const body = req.body;
-    const error = validateCampaign(body);
-    if (error) return fail(res, 400, error);
-    const now = new Date().toISOString();
-    const result = saveCampaign('create', body, () => campaigns.create({
-      id: nextId('campaign', 'CAM-'), clientId: body.clientId, brandId: body.brandId,
-      campaignName: String(body.campaignName).trim(), prompt: String(body.prompt).trim(),
-      client: optionalText(body.client), brand: optionalText(body.brand),
-      objective: optionalText(body.objective), targetAudience: optionalText(body.targetAudience),
-      startDate: body.startDate, endDate: body.endDate, budget: parseBudget(body.budget),
-      channel: body.channel, status: body.status || 'Draft', createdAt: now, updatedAt: now
-    }));
+
+    const result = saveCampaign('create', body, () => {
+     const error = validateCampaign(body, {
+  now: campaignNow()
+});
+      if (error) {
+        throw Object.assign(new Error(error), { status: 400 });
+      }
+
+      const now = new Date().toISOString();
+
+      return campaigns.create({
+        id: nextId('campaign', 'CAM-'),
+        clientId: body.clientId,
+        brandId: body.brandId,
+        campaignName: String(body.campaignName).trim(),
+        prompt: String(body.prompt).trim(),
+        client: optionalText(body.client),
+        brand: optionalText(body.brand),
+        objective: optionalText(body.objective),
+        targetAudience: optionalText(body.targetAudience),
+        startDate: body.startDate,
+        endDate: body.endDate,
+        budget: parseBudget(body.budget),
+        channel: body.channel,
+        status: body.status || 'Draft',
+        createdAt: now,
+        updatedAt: now
+      });
+    });
+
     data(res, toApiCampaign(result.saved), result.replayed ? 200 : 201);
   });
   app.put('/api/campaigns/:id', (req, res) => {
@@ -151,13 +175,28 @@ function createApp(options = {}) {
     for (const field of ['client', 'brand']) {
       if (Object.hasOwn(body, field + 'Id') && !Object.hasOwn(body, field)) updated[field] = '';
     }
-    const error = validateCampaign(updated);
-    if (error) return fail(res, 400, error);
-    updated.budget = parseBudget(updated.budget);
-    for (const field of ['campaignName', 'prompt', 'client', 'brand', 'objective', 'targetAudience']) {
-      if (typeof updated[field] === 'string') updated[field] = updated[field].trim();
-    }
-    const result = saveCampaign('update:' + req.params.id, body, () => campaigns.update(req.params.id, updated));
+      const result = saveCampaign('update:' + req.params.id, body, () => {
+ const error = validateCampaign(updated, {
+  existingStartDate: current.startDate,
+  now: campaignNow()
+});
+      if (error) {
+        throw Object.assign(new Error(error), { status: 400 });
+      }
+
+      updated.budget = parseBudget(updated.budget);
+
+      for (const field of [
+        'campaignName', 'prompt', 'client',
+        'brand', 'objective', 'targetAudience'
+      ]) {
+        if (typeof updated[field] === 'string') {
+          updated[field] = updated[field].trim();
+        }
+      }
+
+      return campaigns.update(req.params.id, updated);
+    });
     data(res, toApiCampaign(result.saved));
   });
   app.delete('/api/campaigns/:id', (req, res) => {

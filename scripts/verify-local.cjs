@@ -86,6 +86,8 @@ const suites = [
   ['launcher', ['--test', 'scripts/start-crm.test.cjs']],
   ['recovery', ['--test', 'scripts/recovery-check.test.cjs']],
   ['workflows', ['scripts/local-workflows-check.cjs']],
+  ['final-ui-runtime', ['scripts/final-ui-runtime-check.cjs']],
+  ['campaign-dates', ['scripts/campaign-date-browser-check.cjs']],
   ['access-browser', ['scripts/access-browser-check.cjs']]
 ];
 
@@ -117,7 +119,7 @@ const suites = [
       });
 
       child.once('error', reject);
-      child.once('exit', resolve);
+      child.once('close', resolve);
     });
 
     fs.writeFileSync(

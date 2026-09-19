@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Divinenet - Campaign workspace</title><link rel="stylesheet" href="/style.css"><script src="/apps.js" defer></script>
+  <title>Divinenet - Campaign workspace</title><link rel="stylesheet" href="/style.css"><link rel="stylesheet" href="/auth.css"><script src="/auth.js" defer></script><script src="/apps.js" defer></script>
 </head>
 <body>
 <a class="skip" href="#main">Skip to content</a>
@@ -19,13 +19,12 @@
   <div class="sidebar-note"><span class="pill">SPRINT 3 - LOCAL REVIEW</span><p>One workspace.<br>Connected campaign data.</p><small>Use synthetic test data only. Public access and client acceptance are pending.</small></div>
 </aside>
 <div class="content">
-  <header class="topbar"><span>Divinenet / <strong id="breadcrumb">Overview</strong></span><span id="connection" role="status">Connecting…</span><button id="refresh" class="quiet" type="button">Refresh data</button></header>
+  <header class="topbar"><span>Divinenet / <strong id="breadcrumb">Overview</strong></span><span id="connection" role="status">Connecting…</span><button id="refresh" class="quiet" type="button">Refresh data</button><div id="account-controls"></div></header>
   <main id="main" tabindex="-1">
     <div id="notice" role="status" aria-live="polite" hidden></div>
     <div id="global-error" role="alert" hidden></div>
     <section class="page-head"><div><p class="eyebrow">CAMPAIGN WORKSPACE</p><h1 id="page-title">Your marketing, in focus.</h1><p id="page-description">Plan campaigns, organise responses and review creative in one place.</p></div><button id="primary-action" class="primary">Create campaign <span aria-hidden="true">＋</span></button></section>
     <div id="view" aria-busy="true"><p class="empty">Loading your workspace…</p></div>
-    <footer>Divinenet - Sprint 3 review build <span>Database-backed workspace · No live publishing</span></footer>
   </main>
 </div>
 </div>
