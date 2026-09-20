@@ -95,7 +95,7 @@ function table(headers) {
 }
 function campaignName(id){return state.campaigns.find(c=>c.id===id)?.campaignName||id;}
 async function refresh() {
-  const version=++loadVersion;$("refresh").disabled=true;$("connection").textContent="Connecting…";$("view").setAttribute("aria-busy","true");
+  const version=++loadVersion;$("refresh").disabled=true;$("connection").textContent="Connecting...";$("view").setAttribute("aria-busy","true");
   try {
     const [campaigns,leads,clients,brands,analytics,ai]=await Promise.all(["/campaigns","/leads","/clients","/brands","/analytics/summary","/ai/status"].map(path=>api(path)));
     if(version!==loadVersion)return;
@@ -128,7 +128,7 @@ function render() {
   document.title="Divinenet · "+breadcrumb;
   for(const a of document.querySelectorAll("[data-route]")) {if(a.dataset.route===state.route)a.setAttribute("aria-current","page");else a.removeAttribute("aria-current");}
   const primary=$("primary-action");primary.hidden=state.route==="model"||!canWrite();primary.disabled=false;
-  primary.textContent=state.route==="leads"?"Add lead ＋":"Create campaign ＋";
+  primary.textContent=state.route==="leads"?"Add lead +":"Create campaign +";
   primary.onclick=()=>state.route==="leads"?openLead():openCampaign();
   $("view").replaceChildren();
   ({dashboard:renderDashboard,campaigns:renderCampaigns,leads:renderLeads,model:renderModel})[state.route]();
@@ -320,7 +320,7 @@ function openCampaign(c=null) {
   }
   add("campaignName","Campaign name",{required:true,full:true,maxLength:200});
   for(const [kind,label,list] of [["client","Client",state.clients],["brand","Brand",state.brands]]) {
-    const selected=add(kind+"Id",label,{options:[{value:"",label:"Not selected"},...list.map(x=>({value:x.id,label:x.name})),{value:"__new__",label:"＋ Add a new "+kind+" name"}]});
+    const selected=add(kind+"Id",label,{options:[{value:"",label:"Not selected"},...list.map(x=>({value:x.id,label:x.name})),{value:"__new__",label:"+ Add a new "+kind+" name"}]});
     const custom=add(kind,label+" name",{value:"",maxLength:200});
     custom.label.hidden=true;
     selected.input.addEventListener("change",()=>{custom.label.hidden=selected.input.value!=="__new__";custom.input.required=!custom.label.hidden;if(!custom.label.hidden)custom.input.focus();});
@@ -338,7 +338,8 @@ function openCampaign(c=null) {
   const today=campaignBusinessDate();
   add("startDate","Start date",{type:"date",required:true,value:c?.startDate||today});
   add("endDate","End date",{type:"date",required:true,value:c?.endDate||plusDays(today,7),help:"New campaigns default to 7 calendar days after the start date. Both dates are editable."});
-  let manualEnd=Boolean(c);
+  // Saved non-default dates are deliberate; do not silently replace them.
+  let manualEnd=Boolean(c && c.endDate !== plusDays(c.startDate,7));
    function validateStartDate() {
     const today = campaignBusinessDate();
     const value = inputs.startDate.value;
@@ -465,7 +466,7 @@ function addCampaignBanner(c,inputs) {
     if(!consentCheck.checked){say("Review the prompt and select its permission checkbox first.",true);consentCheck.focus();return;}
     const previousDraft=banner.draft;
     const requestRevision=banner.revision,requestContext=contextKey();
-    setBusy(true);generate.textContent="Generating banner…";say("Generating an unsaved image. Keep this form open; the campaign has not been created.");
+    setBusy(true);generate.textContent="Generating banner...";say("Generating an unsaved image. Keep this form open; the campaign has not been created.");
     try{
       const draft=await api("/banner-drafts/generate",{method:"POST",body:{prompt:prompt.value.trim(),consentToSend:true},timeout:195000});
       if(editing!==owner||banner.revision!==requestRevision||contextKey()!==requestContext){
@@ -502,7 +503,7 @@ function addCampaignBanner(c,inputs) {
   }
   if(c){
     const existing=node("div",null,"section-gap");existing.id="saved-campaign-banners";section.append(node("h3","Saved campaign banners"),existing);
-    existing.append(node("p","Loading saved banners…","muted"));
+    existing.append(node("p","Loading saved banners...","muted"));
     api("/campaigns/"+encodeURIComponent(c.id)+"/assets").then(assets=>{
       if(editing!==owner)return;
       existing.replaceChildren();
@@ -531,7 +532,7 @@ function viewCampaign(c) {
     const part=node("div");part.append(node("dt",title),node("dd",value));details.append(part);
   }
   $("form-fields").append(details);
-  const savedAssets=node("section",null,"saved-view-assets full");savedAssets.append(node("h3","Saved campaign banners"),node("p","Loading saved banners…","muted"));$("form-fields").append(savedAssets);
+  const savedAssets=node("section",null,"saved-view-assets full");savedAssets.append(node("h3","Saved campaign banners"),node("p","Loading saved banners...","muted"));$("form-fields").append(savedAssets);
   api("/campaigns/"+encodeURIComponent(c.id)+"/assets").then(assets=>{
     if(!savedAssets.isConnected)return;savedAssets.replaceChildren(node("h3","Saved campaign banners"));
     if(!assets.length){savedAssets.append(node("p","No banner has been saved for this campaign.","muted"));return;}
@@ -595,7 +596,7 @@ $("record-form").addEventListener("submit",async event=>{
     if(editing.lastPayload&&editing.lastPayload!==payload)editing.requestId=crypto.randomUUID();
     editing.lastPayload=payload;data.clientRequestId=editing.requestId;
   }
-  saving=true;$("save-record").disabled=true;$("form-fields").inert=true;$("save-state").textContent="Saving to the database…";message("form-error","");
+  saving=true;$("save-record").disabled=true;$("form-fields").inert=true;$("save-state").textContent="Saving to the database...";message("form-error","");
   try {
     const path=(current.kind==="campaign"?"/campaigns":"/leads")+(current.id?"/"+encodeURIComponent(current.id):"");
     const saved=await api(path,{method:current.id?"PUT":"POST",body:data});
@@ -754,6 +755,9 @@ window.addEventListener("hashchange",()=>{
 // Responses can arrive from the separate lead-form tab. Re-read saved data when returning.
 window.addEventListener("focus",()=>{if(state.ready&&!$("editor").open&&!saving&&!document.hidden)refresh();});
 Promise.resolve(window.CRMAuth?.ready).then(access=>{if(!access||access.enabled===false||access.authenticated)refresh();else if(access.error)message("global-error",access.error);});
+
+
+
 
 
 
