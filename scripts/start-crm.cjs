@@ -1,4 +1,4 @@
-'use strict';
+﻿'use strict';
 // Package-owned launcher. Never adopts ownership of an already running process.
 const fs = require('node:fs');
 const path = require('node:path');
@@ -261,7 +261,7 @@ async function requestPackageStop() {
     client.setTimeout(3000, () => client.destroy(new Error('Package stop request timed out. No other process was stopped.')));
     client.once('connect', () => client.write(record.token + '\n'));
     client.on('data', data => { reply += data.toString('utf8'); });
-    client.once('error', error => reject(new Error('Recorded package CRM is stopped or unavailable. No process was killed. ' + error.code)));
+    client.once('error', error => { if (error.code === 'ENOENT' || error.code === 'ECONNREFUSED') { try { fs.unlinkSync(CRM_RECORD); } catch {} console.log('Recorded package CRM is already stopped. Stale launch record removed.'); resolve(); } else reject(new Error('Recorded package CRM is stopped or unavailable. No process was killed. ' + error.code)); });
     client.once('end', () => { if (reply.trim() === 'OK') resolve(); else reject(new Error('Stop request was not accepted. No process was killed.')); });
   });
   console.log('Graceful shutdown requested from this package CRM only. Pre-existing AI and other services are untouched.');
