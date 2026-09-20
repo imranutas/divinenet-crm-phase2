@@ -527,7 +527,7 @@ function addCampaignBanner(c,inputs) {
 function viewCampaign(c) {
   dialogSetup(c.campaignName,"Campaign record · "+c.id);$("save-record").hidden=true;$("cancel-editor").textContent="Close";$("save-state").textContent="Read-only view.";
   const details=node("dl",null,"detail-grid full");
-  for(const [title,value] of [["Client",c.client||"Not selected"],["Brand",c.brand||"Not selected"],["Brief",c.prompt],["Objective",c.objective||"Not set"],["Audience",c.targetAudience||"Not set"],["Channel",c.channel],["Dates",displayDate(c.startDate)+" â€“ "+displayDate(c.endDate)],["Budget",money(c.budget)],["Status",c.status],["Linked leads",state.leads.filter(l=>l.campaignId===c.id).length]]) {
+  for(const [title,value] of [["Client",c.client||"Not selected"],["Brand",c.brand||"Not selected"],["Brief",c.prompt],["Objective",c.objective||"Not set"],["Audience",c.targetAudience||"Not set"],["Channel",c.channel],["Dates",displayDate(c.startDate)+" – "+displayDate(c.endDate)],["Budget",money(c.budget)],["Status",c.status],["Linked leads",state.leads.filter(l=>l.campaignId===c.id).length]]) {
     const part=node("div");part.append(node("dt",title),node("dd",value));details.append(part);
   }
   $("form-fields").append(details);
@@ -754,6 +754,7 @@ window.addEventListener("hashchange",()=>{
 // Responses can arrive from the separate lead-form tab. Re-read saved data when returning.
 window.addEventListener("focus",()=>{if(state.ready&&!$("editor").open&&!saving&&!document.hidden)refresh();});
 Promise.resolve(window.CRMAuth?.ready).then(access=>{if(!access||access.enabled===false||access.authenticated)refresh();else if(access.error)message("global-error",access.error);});
+
 
 
 
