@@ -125,10 +125,10 @@ function render() {
   };
   const [breadcrumb,title,description]=headings[state.route];
   $("breadcrumb").textContent=breadcrumb;$("page-title").textContent=title;$("page-description").textContent=description;
-  document.title="Divinenet Â· "+breadcrumb;
+  document.title="Divinenet · "+breadcrumb;
   for(const a of document.querySelectorAll("[data-route]")) {if(a.dataset.route===state.route)a.setAttribute("aria-current","page");else a.removeAttribute("aria-current");}
   const primary=$("primary-action");primary.hidden=state.route==="model"||!canWrite();primary.disabled=false;
-  primary.textContent=state.route==="leads"?"Add lead ï¼‹":"Create campaign ï¼‹";
+  primary.textContent=state.route==="leads"?"Add lead +":"Create campaign +";
   primary.onclick=()=>state.route==="leads"?openLead():openCampaign();
   $("view").replaceChildren();
   ({dashboard:renderDashboard,campaigns:renderCampaigns,leads:renderLeads,model:renderModel})[state.route]();
@@ -137,7 +137,7 @@ function campaignTable(records,limited=false) {
   if(!records.length)return empty("No campaigns here yet","Create a campaign to start planning. Empty records stay empty.");
   const {wrap,body}=table(["Campaign","Channel","Status","Start","Budget",...(limited?[]:["Actions"])]);
   for(const c of records) {
-    const row=node("tr"),title=node("td");title.append(node("strong",c.campaignName),node("small",c.id+(c.client?" Â· "+c.client:"")));
+    const row=node("tr"),title=node("td");title.append(node("strong",c.campaignName),node("small",c.id+(c.client?" · "+c.client:"")));
     const status=node("td");status.append(badge(c.status));
     row.append(title,node("td",c.channel),status,node("td",displayDate(c.startDate)),node("td",money(c.budget)));
     if(!limited) {
@@ -176,7 +176,7 @@ function renderDashboard() {
   }
 
   const grid=node("div",null,"overview-grid"),recent=panel("Recent campaigns");
-  recent.firstChild.append(link("View all campaigns â†’","#campaigns"));
+  recent.firstChild.append(link("View all campaigns →","#campaigns"));
   recent.append(campaignTable(state.campaigns.slice(0,5),true));
 
   const stack=node("div",null,"stack"),pipeline=panel("Lead snapshot");
@@ -198,7 +198,7 @@ function renderDashboard() {
   const studio=panel("Your brief and banner, together");
   studio.append(
     node("p","Create or edit a campaign to generate, review and save its banner in the same form. "+state.ai.message,"muted"),
-    link("Open campaigns â†’","#campaigns")
+    link("Open campaigns →","#campaigns")
   );
 
   stack.append(pipeline,studio);
@@ -247,7 +247,7 @@ function renderCampaigns() {
     for(const [value,control] of sectionButtons)control.setAttribute("aria-pressed",String(status.input.value===value));
     download.disabled=!filteredCampaigns.length;
     const selected=status.input.value==="All statuses"?"All campaigns":status.input.value+" campaigns";
-    summary.textContent=selected+" Â· "+filteredCampaigns.length+(filteredCampaigns.length===1?" result":" results");
+    summary.textContent=selected+" · "+filteredCampaigns.length+(filteredCampaigns.length===1?" result":" results");
     if(filteredCampaigns.length)results.replaceChildren(campaignTable(filteredCampaigns));
     else if(q)results.replaceChildren(empty("No matching campaigns","Try a different search or choose another section."));
     else if(status.input.value==="Scheduled")results.replaceChildren(empty("Nothing scheduled yet","Campaigns scheduled for publishing will appear here."));
@@ -295,7 +295,7 @@ function openCampaign(c=null) {
   const inputs={};
   function add(name,label,options={}) {const item=field(name,label,{value:c?.[name]??"",...options});fields.append(item.label);inputs[name]=item.input;return item;}
   if(!c) {
-    const source=add("sourceLead","Use campaign context from a saved lead",{options:[{value:"",label:"Start with a blank brief"},...state.leads.map(l=>({value:l.id,label:l.id+" Â· "+campaignName(l.campaignId)}))],full:true,help:"Copies campaign context only. This does not convert, move or merge a lead."});
+    const source=add("sourceLead","Use campaign context from a saved lead",{options:[{value:"",label:"Start with a blank brief"},...state.leads.map(l=>({value:l.id,label:l.id+" · "+campaignName(l.campaignId)}))],full:true,help:"Copies campaign context only. This does not convert, move or merge a lead."});
     let previousSource="", previousContext=null;
     source.input.addEventListener("change",()=>{
       const names=["clientId","brandId","prompt","objective","targetAudience","channel","budget","client","brand"];
@@ -320,7 +320,7 @@ function openCampaign(c=null) {
   }
   add("campaignName","Campaign name",{required:true,full:true,maxLength:200});
   for(const [kind,label,list] of [["client","Client",state.clients],["brand","Brand",state.brands]]) {
-    const selected=add(kind+"Id",label,{options:[{value:"",label:"Not selected"},...list.map(x=>({value:x.id,label:x.name})),{value:"__new__",label:"ï¼‹ Add a new "+kind+" name"}]});
+    const selected=add(kind+"Id",label,{options:[{value:"",label:"Not selected"},...list.map(x=>({value:x.id,label:x.name})),{value:"__new__",label:"+ Add a new "+kind+" name"}]});
     const custom=add(kind,label+" name",{value:"",maxLength:200});
     custom.label.hidden=true;
     selected.input.addEventListener("change",()=>{custom.label.hidden=selected.input.value!=="__new__";custom.input.required=!custom.label.hidden;if(!custom.label.hidden)custom.input.focus();});
@@ -509,7 +509,7 @@ function addCampaignBanner(c,inputs) {
       if(!assets.length){existing.append(node("p","No saved banner yet. Generate one above without leaving this campaign.","muted"));return;}
       for(const asset of assets){
         const card=node("article",null,"asset-card"),image=node("img");image.src=asset.imageUrl;image.alt="Saved banner for "+c.campaignName;image.loading="lazy";
-        card.append(image,badge(asset.status),node("p",asset.prompt),node("p",asset.provider+" Â· "+asset.model,"muted"));
+        card.append(image,badge(asset.status),node("p",asset.prompt),node("p",asset.provider+" · "+asset.model,"muted"));
         if(asset.status==="Approved")card.append(link("Download approved banner",asset.downloadUrl));
         else{
           const label=node("label",null,"checkbox"),check=node("input");check.type="checkbox";label.append(check,node("span","I reviewed this saved image, wording, rights and suitability."));
@@ -525,7 +525,7 @@ function addCampaignBanner(c,inputs) {
   }
 }
 function viewCampaign(c) {
-  dialogSetup(c.campaignName,"Campaign record Â· "+c.id);$("save-record").hidden=true;$("cancel-editor").textContent="Close";$("save-state").textContent="Read-only view.";
+  dialogSetup(c.campaignName,"Campaign record · "+c.id);$("save-record").hidden=true;$("cancel-editor").textContent="Close";$("save-state").textContent="Read-only view.";
   const details=node("dl",null,"detail-grid full");
   for(const [title,value] of [["Client",c.client||"Not selected"],["Brand",c.brand||"Not selected"],["Brief",c.prompt],["Objective",c.objective||"Not set"],["Audience",c.targetAudience||"Not set"],["Channel",c.channel],["Dates",displayDate(c.startDate)+" â€“ "+displayDate(c.endDate)],["Budget",money(c.budget)],["Status",c.status],["Linked leads",state.leads.filter(l=>l.campaignId===c.id).length]]) {
     const part=node("div");part.append(node("dt",title),node("dd",value));details.append(part);
@@ -562,7 +562,7 @@ function openLead(lead=null) {
   dialogSetup(lead?"Edit lead":"Add lead","Use synthetic records for this review. Consent is recorded as supplied; it is not inferred from entering an email.");
   editing={kind:"lead",id:lead?.id};
   const specs=[
-    ["campaignId","Campaign",{options:state.campaigns.map(c=>({value:c.id,label:c.id+" Â· "+c.campaignName})),required:true,full:true}],
+    ["campaignId","Campaign",{options:state.campaigns.map(c=>({value:c.id,label:c.id+" · "+c.campaignName})),required:true,full:true}],
     ["name","Name",{required:true,maxLength:200}],["email","Email",{type:"email",required:true,maxLength:254}],
     ["phone","Phone",{type:"tel",maxLength:50}],
     ["sourcePlatform","Source platform",{options:channels,required:true,value:lead?.sourcePlatform||"Website"}],
@@ -614,7 +614,7 @@ $("record-form").addEventListener("submit",async event=>{
 function renderLeads() {
   state.filters ??= {};
 
-  const note=node("div","Development pipeline: New â†’ Contacted â†’ Qualified. Stage transitions are recorded. Scoring policy and Phase 1 conversion are not approved or connected; no lead is marked Converted.","callout warning");
+  const note=node("div","Development pipeline: New → Contacted → Qualified. Stage transitions are recorded. Scoring policy and Phase 1 conversion are not approved or connected; no lead is marked Converted.","callout warning");
   $("view").append(note);
 
   const filters=node("div",null,"filters section-gap");
@@ -674,7 +674,7 @@ function renderLeads() {
         card.append(
           node("h3",lead.name),
           node("p",lead.email),
-          node("p",lead.id+" Â· "+campaignName(lead.campaignId)),
+          node("p",lead.id+" · "+campaignName(lead.campaignId)),
           badge(lead.sourcePlatform),
           node("p","Consent: "+lead.consentStatus)
         );
@@ -713,13 +713,13 @@ async function viewHistory(lead){
     dialogSetup("Stage history","Recorded transitions for "+lead.id);$("save-record").hidden=true;$("cancel-editor").textContent="Close";$("save-state").textContent="Read-only history.";
     const list=node("div",null,"full");
     if(!history.length)list.append(node("p","No stage changes recorded.","muted"));
-    for(const entry of history)list.append(node("p",entry.from_stage+" â†’ "+entry.to_stage+" Â· "+new Date(entry.changed_at).toLocaleString("en-AU")));
+    for(const entry of history)list.append(node("p",entry.from_stage+" → "+entry.to_stage+" · "+new Date(entry.changed_at).toLocaleString("en-AU")));
     $("form-fields").append(list);presentDialog();
   }catch(error){message("global-error",error.message);}
 }
 function renderModel(){
   const p=panel("Implemented relationships");
-  p.append(node("p","Client / Brand â†’ Campaign â†’ Lead â†’ Stage history. Campaign â†’ Image assets. Foreign keys keep these links valid.","callout"));
+  p.append(node("p","Client / Brand → Campaign → Lead → Stage history. Campaign → Image assets. Foreign keys keep these links valid.","callout"));
   const grid=node("div",null,"model-grid section-gap");
   const entities=[
     ["Clients","id (PK), name (unique)","Reusable client name directory. A campaign may reference one client."],
@@ -754,6 +754,7 @@ window.addEventListener("hashchange",()=>{
 // Responses can arrive from the separate lead-form tab. Re-read saved data when returning.
 window.addEventListener("focus",()=>{if(state.ready&&!$("editor").open&&!saving&&!document.hidden)refresh();});
 Promise.resolve(window.CRMAuth?.ready).then(access=>{if(!access||access.enabled===false||access.authenticated)refresh();else if(access.error)message("global-error",access.error);});
+
 
 
 
