@@ -238,6 +238,25 @@ async function main(){
             .includes('Banner approved')
         );
 
+        // Reproduce the independent-QA flow: invalidate an approved draft,
+        // select replacement artwork, approve again and persist only the replacement.
+        await page.locator('#field-prompt').fill('Changed synthetic campaign brief');
+        assert.equal(await page.locator('#approve-banner').isVisible(),false);
+        await page.locator('#field-local-file').setInputFiles({
+          name:'replacement-artwork.jpg',mimeType:'image/jpeg',buffer:jpeg
+        });
+        await page.waitForFunction(()=>!document.getElementById('upload-banner').disabled);
+        const replacementResponse=page.waitForResponse(r=>r.url().endsWith('/api/banner-drafts/upload'));
+        await page.locator('#upload-banner').click();
+        const replacement=await replacementResponse;
+        assert.equal(replacement.status(),201);
+        const replacementDraft=(await replacement.json()).data;
+        assert.notEqual(replacementDraft.id,draft.id);
+        const replacementImage=Buffer.from(await (await fetch(base+replacementDraft.imageUrl)).arrayBuffer());
+        await page.waitForFunction(()=>!document.getElementById('banner-review').disabled);
+        await page.locator('#banner-review').check();
+        await page.locator('#approve-banner').click();
+        await page.waitForFunction(()=>document.getElementById('banner-message').textContent.includes('Banner approved'));
         await page.locator('#field-status').selectOption('Active');
         campaign=await save();
 
@@ -247,11 +266,12 @@ async function main(){
         assert.equal(assets[0].provider,'uploaded');
         assert.equal(assets[0].status,'Approved');
         assert.ok((await fetch(base+assets[0].downloadUrl)).ok);
+        assert.deepEqual(Buffer.from(await (await fetch(base+assets[0].downloadUrl)).arrayBuffer()),replacementImage);
       }
     );
 
     await check(
-      'Editing an existing campaign shifts the default end date when the start date changes and exposes its persisted uploaded banner',
+      'Editing an existing campaign preserves its custom end date and exposes its persisted uploaded banner',
       async()=>{
         await page.getByRole('button',{name:'Edit',exact:true}).first().click();
 
@@ -270,7 +290,7 @@ async function main(){
 
         assert.equal(
           await page.locator('#field-endDate').inputValue(),
-          '2026-10-11'
+          '2026-10-15'
         );
 
         await page.locator('#saved-campaign-banners .asset-card').waitFor();

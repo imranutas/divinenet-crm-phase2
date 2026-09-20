@@ -205,7 +205,7 @@ function stopOwnedRuntime() {
   if (ownedRuntime && ownedRuntime.exitCode === null && !ownedRuntime.killed) ownedRuntime.kill();
 }
 
-function stopCRM(code = 0) {
+function stopCRM(code = 0, replySocket) {
   shutdownCode = Math.max(shutdownCode, code);
   if (stopping) return;
   stopping = true;
@@ -213,7 +213,13 @@ function stopCRM(code = 0) {
   const finished = () => {
     try { crmDatabase?.close(); } catch { shutdownCode = 1; }
     stopOwnedRuntime();
-    process.exit(shutdownCode);
+    try {
+      if (fs.existsSync(CRM_RECORD) && readJson(CRM_RECORD).processId === process.pid) fs.unlinkSync(CRM_RECORD);
+    } catch { shutdownCode = 1; }
+    if (replySocket && !replySocket.destroyed) {
+      replySocket.end(shutdownCode === 0 ? 'OK\n' : 'FAILED\n', () => process.exit(shutdownCode));
+      setTimeout(() => process.exit(shutdownCode), 1000).unref();
+    } else process.exit(shutdownCode);
   };
   if (crmServer?.listening) crmServer.close(finished);
   else finished();
@@ -240,10 +246,10 @@ async function enablePackageStop() {
       if (input.length > 512) { socket.destroy(); return; }
       if (!input.includes('\n')) return;
       if (input.trim() !== token) { socket.end('DENIED\n'); return; }
-      socket.end('OK\n');
-      controlServer.close();
+      socket.setTimeout(0);
+      socket.removeAllListeners('data');
       // Closes only this process's own app/database; no public HTTP route.
-      setImmediate(() => stopCRM(0));
+      setImmediate(() => stopCRM(0, socket));
     });
     socket.on('error', () => {});
   });
@@ -251,20 +257,56 @@ async function enablePackageStop() {
   fs.writeFileSync(CRM_RECORD, JSON.stringify({ processId: process.pid, executable: process.execPath, packageRoot: ROOT, pipe: PIPE, token, started: new Date().toISOString() }, null, 2) + '\n', { mode: 0o600 });
 }
 
+function processIsAlive(pid) {
+  if (!Number.isSafeInteger(pid) || pid < 1) throw new Error('Invalid CRM process identity.');
+  try { process.kill(pid, 0); return true; }
+  catch (error) { if (error.code === 'ESRCH') return false; throw error; }
+}
+
+async function waitForProcessExit(pid, timeoutMs = 10000, isAlive = processIsAlive) {
+  const deadline = Date.now() + timeoutMs;
+  while (isAlive(pid)) {
+    if (Date.now() >= deadline) throw new Error('CRM shutdown timed out. No process was killed.');
+    await delay(50);
+  }
+}
+
+async function sendStopRequest(endpoint, token, timeoutMs = 10000) {
+  await new Promise((resolve, reject) => {
+    const client = net.connect(endpoint);
+    let reply = '', settled = false;
+    const finish = error => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      client.setTimeout(0);
+      client.destroy();
+      if (error) reject(error); else resolve();
+    };
+    const timer = setTimeout(() => finish(new Error('Package stop request timed out. No process was killed.')), timeoutMs);
+    client.once('connect', () => client.write(token + '\n'));
+    client.on('data', data => {
+      reply += data.toString('utf8');
+      if (reply.length > 512) return finish(new Error('Invalid stop response.'));
+      if (reply.includes('\n')) finish(reply.trim() === 'OK' ? undefined : new Error('Stop request failed: ' + reply.trim()));
+    });
+    client.once('error', finish);
+    client.once('end', () => finish(new Error('Stop connection ended without confirmation.')));
+    client.once('close', () => finish(new Error('Stop connection closed without confirmation.')));
+  });
+}
+
 async function requestPackageStop() {
   if (!fs.existsSync(CRM_RECORD)) { console.log('This package has no recorded CRM process. No process was stopped.'); return; }
   const record = readJson(CRM_RECORD);
   if (!samePath(record.packageRoot, ROOT) || record.pipe !== PIPE || !/^[0-9a-f]{64}$/.test(record.token)) throw new Error('Package stop record is invalid. No process was stopped.');
-  await new Promise((resolve, reject) => {
-    const client = net.connect(PIPE);
-    let reply = '';
-    client.setTimeout(3000, () => client.destroy(new Error('Package stop request timed out. No other process was stopped.')));
-    client.once('connect', () => client.write(record.token + '\n'));
-    client.on('data', data => { reply += data.toString('utf8'); });
-    client.once('error', error => { if (error.code === 'ENOENT' || error.code === 'ECONNREFUSED') { try { fs.unlinkSync(CRM_RECORD); } catch {} console.log('Recorded package CRM is already stopped. Stale launch record removed.'); resolve(); } else reject(new Error('Recorded package CRM is stopped or unavailable. No process was killed. ' + error.code)); });
-    client.once('end', () => { if (reply.trim() === 'OK') resolve(); else reject(new Error('Stop request was not accepted. No process was killed.')); });
-  });
-  console.log('Graceful shutdown requested from this package CRM only. Pre-existing AI and other services are untouched.');
+  try { await sendStopRequest(PIPE, record.token); }
+  catch (error) {
+    if (!['ENOENT', 'ECONNREFUSED'].includes(error.code) || processIsAlive(record.processId)) throw error;
+  }
+  await waitForProcessExit(record.processId);
+  if (fs.existsSync(CRM_RECORD) && readJson(CRM_RECORD).token === record.token) fs.unlinkSync(CRM_RECORD);
+  console.log('Package CRM shutdown confirmed. Pre-existing AI and other services are untouched.');
 }
 
 async function main(argv = process.argv.slice(2)) {
@@ -327,4 +369,4 @@ if (require.main === module) {
   });
 }
 
-module.exports = { configFor, aiDirectory, parseListeners, recordedIdentityMatches, capabilitiesMatch, runtimeArgs, assertDependencies, assertPortFree, samePath };
+module.exports = { configFor, aiDirectory, parseListeners, recordedIdentityMatches, capabilitiesMatch, runtimeArgs, assertDependencies, assertPortFree, samePath, sendStopRequest, waitForProcessExit };

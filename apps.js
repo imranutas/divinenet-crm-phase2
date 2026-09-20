@@ -1,4 +1,4 @@
-﻿"use strict";
+"use strict";
 // Shared API-backed workspace. Legacy browser records are not silently imported.
 const $ = id => document.getElementById(id);
 const state = { campaigns:[], leads:[], clients:[], brands:[], analytics:null, ai:null, ready:false, route:"dashboard" };
@@ -95,13 +95,13 @@ function table(headers) {
 }
 function campaignName(id){return state.campaigns.find(c=>c.id===id)?.campaignName||id;}
 async function refresh() {
-  const version=++loadVersion;$("refresh").disabled=true;$("connection").textContent="Connectingâ€¦";$("view").setAttribute("aria-busy","true");
+  const version=++loadVersion;$("refresh").disabled=true;$("connection").textContent="Connecting...";$("view").setAttribute("aria-busy","true");
   try {
     const [campaigns,leads,clients,brands,analytics,ai]=await Promise.all(["/campaigns","/leads","/clients","/brands","/analytics/summary","/ai/status"].map(path=>api(path)));
     if(version!==loadVersion)return;
     Object.assign(state,{campaigns,leads,clients,brands,analytics,ai,ready:true});
     connectionError="";
-    $("connection").textContent="â— Database connected";$("connection").className="online";message("global-error","");
+    $("connection").textContent="● Database connected";$("connection").className="online";message("global-error","");
     render();
   } catch(error) {
     if(version!==loadVersion)return;
@@ -193,7 +193,7 @@ function renderDashboard() {
   );
   pipeline.append(rate);
 
-  pipeline.append(node("p","Qualified lead records Ã· all lead records. An operational measure, not customer conversion. Counts reflect all currently stored records; performance targets are not yet configured.","muted"));
+  pipeline.append(node("p","Qualified lead records ÷ all lead records. An operational measure, not customer conversion. Counts reflect all currently stored records; performance targets are not yet configured.","muted"));
 
   const studio=panel("Your brief and banner, together");
   studio.append(
@@ -338,7 +338,8 @@ function openCampaign(c=null) {
   const today=campaignBusinessDate();
   add("startDate","Start date",{type:"date",required:true,value:c?.startDate||today});
   add("endDate","End date",{type:"date",required:true,value:c?.endDate||plusDays(today,7),help:"New campaigns default to 7 calendar days after the start date. Both dates are editable."});
-  let manualEnd=false;
+  // Saved non-default dates are deliberate; do not silently replace them.
+  let manualEnd=Boolean(c && c.endDate !== plusDays(c.startDate,7));
    function validateStartDate() {
     const today = campaignBusinessDate();
     const value = inputs.startDate.value;
@@ -405,9 +406,9 @@ function addCampaignBanner(c,inputs) {
   const reviewActions=node("div",null,"banner-actions banner-review-actions");reviewActions.append(approve,discard);
   section.append(provider,promptLabel,consent,actions,feedback,preview,review,reviewActions,node("p","Unsaved banners expire after 30 minutes and are lost if the server restarts. Closing this form discards the unsaved banner. Saved campaign assets stay in the database. Nothing is published automatically.","muted"));
   const local=node("section",null,"local-file-preview");local.append(node("h3","Use your own banner"));
-  const picker=field("local-file","Choose an image file",{type:"file",help:"PNG or JPEG, up to 5 MB and 4096 Ã— 4096 pixels. Local preview only until you select Use this file as banner: it is not uploaded automatically. Review, approve and save to keep it as a campaign asset."});
+  const picker=field("local-file","Choose an image file",{type:"file",help:"PNG or JPEG, up to 5 MB and 4096 × 4096 pixels. Local preview only until you select Use this file as banner: it is not uploaded automatically. Review, approve and save to keep it as a campaign asset."});
   picker.input.removeAttribute("name");picker.input.accept="image/png,image/jpeg";
-  const localPreview=node("img");localPreview.id="file-preview";localPreview.alt="Local file preview only â€” not a saved campaign banner";localPreview.hidden=true;
+  const localPreview=node("img");localPreview.id="file-preview";localPreview.alt="Local file preview only — not a saved campaign banner";localPreview.hidden=true;
   const fileError=node("p",null,"callout warning");fileError.id="file-preview-error";fileError.setAttribute("role","alert");fileError.hidden=true;
   const upload=button("Use this file as banner",uploadFile);upload.id="upload-banner";upload.disabled=true;
   let fileRevision=0;
@@ -448,14 +449,14 @@ function addCampaignBanner(c,inputs) {
     setBusy(true);say("Preparing your chosen file as an unsaved banner. Review and approve it before saving.");
     try{
       const canvas=document.createElement("canvas");canvas.width=localPreview.naturalWidth;canvas.height=localPreview.naturalHeight;
-      if(!canvas.width||!canvas.height||canvas.width>4096||canvas.height>4096)throw new Error("Choose an image no larger than 4096 Ã— 4096 pixels.");
+      if(!canvas.width||!canvas.height||canvas.width>4096||canvas.height>4096)throw new Error("Choose an image no larger than 4096 × 4096 pixels.");
       canvas.getContext("2d").drawImage(localPreview,0,0);
       const imageBase64=canvas.toDataURL("image/png").split(",")[1];
       if(imageBase64.length*3/4>5*1024*1024)throw new Error("This image becomes larger than 5 MB when safely converted to PNG. Choose a smaller image.");
       const draft=await api("/banner-drafts/upload",{method:"POST",body:{imageBase64,prompt:(prompt.value.trim()||"Uploaded campaign artwork").slice(0,2000)},timeout:30000});
       if(editing!==owner||banner.revision!==requestRevision||contextKey()!==requestContext||fileRevision!==selectedRevision){discardRemote(draft);if(editing===owner)say("Campaign context changed while uploading. The outdated draft was discarded. Select and review the file again.",true);return;}
       discardRemote(previousDraft);banner.draft=draft;banner.draftContext=requestContext;reviewCheck.checked=false;preview.src=draft.imageUrl;preview.hidden=false;review.hidden=false;approve.hidden=false;discard.hidden=false;
-      say("Your uploaded banner is ready for review â€” this is not AI-generated. Approve it, then Save campaign to keep the image in the database.");
+      say("Your uploaded banner is ready for review — this is not AI-generated. Approve it, then Save campaign to keep the image in the database.");
     }catch(error){if(editing===owner)say(error.message+(banner.draft?" Your previous banner remains selected.":" No banner has been attached."),true);}
     finally{if(editing===owner)setBusy(false);}
   }
@@ -465,7 +466,7 @@ function addCampaignBanner(c,inputs) {
     if(!consentCheck.checked){say("Review the prompt and select its permission checkbox first.",true);consentCheck.focus();return;}
     const previousDraft=banner.draft;
     const requestRevision=banner.revision,requestContext=contextKey();
-    setBusy(true);generate.textContent="Generating bannerâ€¦";say("Generating an unsaved image. Keep this form open; the campaign has not been created.");
+    setBusy(true);generate.textContent="Generating banner...";say("Generating an unsaved image. Keep this form open; the campaign has not been created.");
     try{
       const draft=await api("/banner-drafts/generate",{method:"POST",body:{prompt:prompt.value.trim(),consentToSend:true},timeout:195000});
       if(editing!==owner||banner.revision!==requestRevision||contextKey()!==requestContext){
@@ -475,7 +476,7 @@ function addCampaignBanner(c,inputs) {
       }
       discardRemote(previousDraft);banner.draftContext=requestContext;
       banner.draft=draft;reviewCheck.checked=false;preview.src=draft.imageUrl;preview.hidden=false;review.hidden=false;approve.hidden=false;discard.hidden=false;
-      say("Draft ready â€” "+draft.provider+" / "+draft.model+". Review and approve it, then save the campaign. This draft is not yet attached to a campaign.");
+      say("Draft ready — "+draft.provider+" / "+draft.model+". Review and approve it, then save the campaign. This draft is not yet attached to a campaign.");
     }catch(error){
       try{state.ai=await api("/ai/status",{timeout:3000});provider.textContent=state.ai.message;}catch{}
       if(editing!==owner)return;
@@ -502,7 +503,7 @@ function addCampaignBanner(c,inputs) {
   }
   if(c){
     const existing=node("div",null,"section-gap");existing.id="saved-campaign-banners";section.append(node("h3","Saved campaign banners"),existing);
-    existing.append(node("p","Loading saved bannersâ€¦","muted"));
+    existing.append(node("p","Loading saved banners...","muted"));
     api("/campaigns/"+encodeURIComponent(c.id)+"/assets").then(assets=>{
       if(editing!==owner)return;
       existing.replaceChildren();
@@ -531,7 +532,7 @@ function viewCampaign(c) {
     const part=node("div");part.append(node("dt",title),node("dd",value));details.append(part);
   }
   $("form-fields").append(details);
-  const savedAssets=node("section",null,"saved-view-assets full");savedAssets.append(node("h3","Saved campaign banners"),node("p","Loading saved bannersâ€¦","muted"));$("form-fields").append(savedAssets);
+  const savedAssets=node("section",null,"saved-view-assets full");savedAssets.append(node("h3","Saved campaign banners"),node("p","Loading saved banners...","muted"));$("form-fields").append(savedAssets);
   api("/campaigns/"+encodeURIComponent(c.id)+"/assets").then(assets=>{
     if(!savedAssets.isConnected)return;savedAssets.replaceChildren(node("h3","Saved campaign banners"));
     if(!assets.length){savedAssets.append(node("p","No banner has been saved for this campaign.","muted"));return;}
@@ -595,7 +596,7 @@ $("record-form").addEventListener("submit",async event=>{
     if(editing.lastPayload&&editing.lastPayload!==payload)editing.requestId=crypto.randomUUID();
     editing.lastPayload=payload;data.clientRequestId=editing.requestId;
   }
-  saving=true;$("save-record").disabled=true;$("form-fields").inert=true;$("save-state").textContent="Saving to the databaseâ€¦";message("form-error","");
+  saving=true;$("save-record").disabled=true;$("form-fields").inert=true;$("save-state").textContent="Saving to the database...";message("form-error","");
   try {
     const path=(current.kind==="campaign"?"/campaigns":"/leads")+(current.id?"/"+encodeURIComponent(current.id):"");
     const saved=await api(path,{method:current.id?"PUT":"POST",body:data});

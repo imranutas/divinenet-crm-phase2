@@ -14,6 +14,10 @@ Records, approved banners and accounts live in data/divinenet.sqlite in THIS fol
 
 STOP-CRM.cmd cleanly stops this package. It does not kill unrelated processes. It stops an AI runtime only if this launcher started it. START-CRM.cmd reopens the same data and account later.
 
+Wait for `Package CRM shutdown confirmed` and a successful exit before restarting. The stop command waits for the package process to exit; a genuine timeout remains an error and must be investigated. Do not change ports or use another checkout to bypass a conflict: another folder has a different database. Use `START-CRM.cmd --no-ai` when demonstrating core features without a verified image runtime.
+
+When editing a campaign, a saved non-default end date is preserved. A seven-day default continues to follow changes to the start date until the end date is manually edited in that form. Historical records do not store whether an end date was originally automatic; a saved seven-day interval is treated as the default.
+
 ## Backup and restore
 
 BACKUP-CRM.cmd creates a new validated SQLite snapshot in backups/. Backups contain private records and account hashes; store them securely.
