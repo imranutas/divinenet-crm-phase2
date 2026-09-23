@@ -101,7 +101,7 @@ async function refresh() {
     if(version!==loadVersion)return;
     Object.assign(state,{campaigns,leads,clients,brands,analytics,ai,ready:true});
     connectionError="";
-    $("connection").textContent="â— Database connected";$("connection").className="online";message("global-error","");
+    $("connection").textContent="Database connected";$("connection").className="online";message("global-error","");
     render();
   } catch(error) {
     if(version!==loadVersion)return;
@@ -112,26 +112,157 @@ message("notice", "");
     $("primary-action").disabled=true;
   } finally {if(version===loadVersion){$("refresh").disabled=false;$("view").setAttribute("aria-busy","false");}}
 }
+let plannedCalendarView="calendar";
+let plannedCalendarMonth=new Date(new Date().getFullYear(),new Date().getMonth(),1);
+
+async function renderCalendar(){
+  const view=$("view"),wrap=panel("Content calendar");
+  wrap.append(node("p","Planning only. Calendar entries do not automatically publish content.","muted"));
+  const actions=node("div",null,"row-actions");
+  if(canWrite())actions.append(button("Add planned content",()=>openPlannedContent()));
+  wrap.append(actions);
+  const status=node("p","Loading saved planned content…","muted");
+  wrap.append(status);view.append(wrap);
+  try{
+    const records=await api("/content-plan");
+    if(!wrap.isConnected)return;
+    status.textContent=records.length?records.length+" saved planning item(s).":"No planned content yet.";
+    if(!records.length)return;
+    const {wrap:tableWrap,body}=table(["Campaign","Channel","Planned date","Status","Notes","Actions"]);
+    for(const item of records){
+      const row=node("tr");
+      row.append(
+        node("td",campaignName(item.campaignId)),
+        node("td",item.channel),
+        node("td",displayDate(item.plannedDate)),
+        node("td",item.status),
+        node("td",item.notes||"")
+      );
+      const actionCell=node("td"),buttons=node("div",null,"row-actions");
+      buttons.append(button("History",()=>viewContentPlanHistory(item)));
+      if(canWrite()&&item.status!=="Cancelled")buttons.append(button("Cancel",()=>cancelContentPlan(item),"danger small-button"));
+      actionCell.append(buttons);row.append(actionCell);body.append(row);
+    }
+    wrap.append(tableWrap);
+  }catch(error){status.textContent="Calendar could not be loaded: "+error.message;}
+}
+
+function openPlannedContent(){
+  if(!canWrite())return;
+  dialogSetup("Create planned content","Planning only. Saving here does not publish content.");
+  const campaign=field("planCampaign","Campaign",{options:[{value:"",label:"Select a campaign"},...state.campaigns.map(c=>({value:c.id,label:c.campaignName||c.id}))],required:true});
+  const channel=field("planChannel","Channel",{options:channels,required:true});
+  const plannedDate=field("planDate","Planned date",{type:"date",required:true});
+  const notes=field("planNotes","Notes",{type:"textarea",full:true,maxLength:2000});
+  $("form-fields").append(campaign.label,channel.label,plannedDate.label,notes.label);
+  $("save-record").textContent="Save planned content";
+  const owner=editing={kind:"content-plan"};
+  $("record-form").onsubmit=async event=>{
+    event.preventDefault();
+    if(!$("record-form").reportValidity()||editing!==owner)return;
+    $("save-record").disabled=true;message("form-error","");
+    try{
+      await api("/content-plan",{method:"POST",body:{
+        requestId:crypto.randomUUID(),
+        campaignId:campaign.input.value,
+        channel:channel.input.value,
+        plannedDate:plannedDate.input.value,
+        notes:notes.input.value.trim()
+      }});
+      editing=null;$("editor").close();message("notice","Planned content saved. Nothing was published.");render();
+    }catch(error){message("form-error",error.message);$("save-record").disabled=false;}
+  };
+  presentDialog();
+}
+
+async function cancelContentPlan(item){
+  clearActionMessages();
+  try{
+    await api("/content-plan/"+encodeURIComponent(item.id),{method:"PATCH",body:{
+      channel:item.channel,plannedDate:item.plannedDate,
+      socialDraftId:item.socialDraftId,
+      socialDraftRevision:item.socialDraftRevision,
+      notes:item.notes||"",status:"Cancelled",revision:item.revision
+    }});
+    message("notice","Planned content cancelled. Nothing was published.");render();
+  }catch(error){message("global-error",error.message);}
+}
+
+async function viewContentPlanHistory(item){
+  clearActionMessages();
+  try{
+    const history=await api("/content-plan/"+encodeURIComponent(item.id)+"/history");
+    dialogSetup("Planning history","Recorded changes for this calendar item.");
+    $("save-record").hidden=true;$("cancel-editor").textContent="Close";
+    const list=node("div",null,"full");
+    if(!history.length)list.append(node("p","No history recorded.","muted"));
+    for(const h of history)list.append(node("p",h.action+" · revision "+h.revision+" · "+h.actor+" · "+new Date(h.occurredAt).toLocaleString("en-AU")));
+    $("form-fields").append(list);presentDialog();
+  }catch(error){message("global-error",error.message);}
+}
+
+async function renderReports(){
+  const view=$("view"),section=panel("Operational reports");
+  section.append(node("p","Current stored CRM records only. Spend, revenue, ROI, impressions and clicks are unavailable.","muted"));
+  const status=node("p","Loading operational report…","muted");
+  section.append(status);view.append(section);
+  try{
+    const report=await api("/reports/operations");
+    if(!section.isConnected)return;
+    status.textContent="Generated "+new Date(report.generatedAt).toLocaleString("en-AU")+" · Business timezone: "+report.timezone;
+    const metrics=node("ul");
+    metrics.append(
+      node("li","Total campaigns: "+report.totals.campaigns),
+      node("li","Total leads: "+report.totals.leads),
+      node("li","Qualified leads: "+report.totals.qualified),
+      node("li","Qualification rate: "+(report.totals.qualificationRate==null?"N/A":Number(report.totals.qualificationRate).toFixed(1)+"%"))
+    );
+    section.append(metrics);
+    section.append(node("p","Leads by stage: "+JSON.stringify(report.byStage),"muted"));
+    section.append(node("p","Leads by source: "+JSON.stringify(report.bySource),"muted"));
+
+    if(canWrite()){
+      const confirm=node("input");confirm.type="checkbox";
+      const label=node("label");label.append(confirm,node("span"," I understand that only aggregate report facts are used to generate this draft."));
+      const generate=button("Generate summary draft",async()=>{
+        generate.disabled=true;message("global-error","");
+        try{
+          const result=await api("/reports/narrative",{method:"POST",body:{confirmed:true,snapshotId:report.snapshotId},timeout:195000});
+          output.textContent=result.narrative;
+          meta.textContent="Provider: "+result.provider+" · Status: "+result.status+" · Human approval required. Not saved, published or emailed automatically.";
+        }catch(error){message("global-error",error.message);}
+        finally{generate.disabled=!confirm.checked;}
+      });
+      generate.disabled=true;
+      confirm.addEventListener("change",()=>generate.disabled=!confirm.checked);
+      const meta=node("p","Generated summaries are drafts only.","muted");
+      const output=node("pre","",null);output.style.whiteSpace="pre-wrap";
+      section.append(label,generate,meta,output);
+    }
+  }catch(error){status.textContent="Operational report could not be loaded: "+error.message;}
+}
 function render() {
   // Old bookmarks remain useful without replacing or submitting an open editor.
   if(location.hash==="#studio")history.replaceState(null,"",location.pathname+location.search+"#campaigns");
   if(!state.ready)return;
-  const route=location.hash.slice(1);state.route=["campaigns","leads","model"].includes(route)?route:"dashboard";
+  const route=location.hash.slice(1);state.route=["campaigns","leads","calendar","reports","model"].includes(route)?route:"dashboard";
   const headings={
     dashboard:["Overview","Your marketing, in focus.","Plan campaigns, organise responses and review creative in one place."],
     campaigns:["Campaigns","From a brief to a campaign.","Every record is saved to the shared backend. Search, review and manage your campaigns."],
     leads:["Leads & pipeline","Make every response count.","Capture campaign-linked leads and follow their recorded progress."],
+    calendar:["Content calendar","Plan campaign content.","Plan saved content without automatically publishing it."],
+    reports:["Reports","Operational reports.","Review current stored CRM figures and generate draft summaries."],
     model:["Data model","See how your data connects.","A view of the implemented relationships and the boundaries still awaiting agreement."]
   };
   const [breadcrumb,title,description]=headings[state.route];
   $("breadcrumb").textContent=breadcrumb;$("page-title").textContent=title;$("page-description").textContent=description;
   document.title="Divinenet · "+breadcrumb;
   for(const a of document.querySelectorAll("[data-route]")) {if(a.dataset.route===state.route)a.setAttribute("aria-current","page");else a.removeAttribute("aria-current");}
-  const primary=$("primary-action");primary.hidden=state.route==="model"||!canWrite();primary.disabled=false;
+  const primary=$("primary-action");primary.hidden=["model","calendar","reports"].includes(state.route)||!canWrite();primary.disabled=false;
   primary.textContent=state.route==="leads"?"Add lead +":"Create campaign +";
   primary.onclick=()=>state.route==="leads"?openLead():openCampaign();
   $("view").replaceChildren();
-  ({dashboard:renderDashboard,campaigns:renderCampaigns,leads:renderLeads,model:renderModel})[state.route]();
+  ({dashboard:renderDashboard,campaigns:renderCampaigns,leads:renderLeads,calendar:renderCalendar,reports:renderReports,model:renderModel})[state.route]();
 }
 function campaignTable(records,limited=false) {
   if(!records.length)return empty("No campaigns here yet","Create a campaign to start planning. Empty records stay empty.");
@@ -405,7 +536,7 @@ function addCampaignBanner(c,inputs) {
   const reviewActions=node("div",null,"banner-actions banner-review-actions");reviewActions.append(approve,discard);
   section.append(provider,promptLabel,consent,actions,feedback,preview,review,reviewActions,node("p","Unsaved banners expire after 30 minutes and are lost if the server restarts. Closing this form discards the unsaved banner. Saved campaign assets stay in the database. Nothing is published automatically.","muted"));
   const local=node("section",null,"local-file-preview");local.append(node("h3","Use your own banner"));
-  const picker=field("local-file","Choose an image file",{type:"file",help:"PNG or JPEG, up to 5 MB and 4096 Ã— 4096 pixels. Local preview only until you select Use this file as banner: it is not uploaded automatically. Review, approve and save to keep it as a campaign asset."});
+  const picker=field("local-file","Choose an image file",{type:"file",help:"PNG or JPEG, up to 5 MB and 4096 × 4096 pixels. Local preview only until you select Use this file as banner: it is not uploaded automatically. Review, approve and save to keep it as a campaign asset."});
   picker.input.removeAttribute("name");picker.input.accept="image/png,image/jpeg";
   const localPreview=node("img");localPreview.id="file-preview";localPreview.alt="Local file preview only â€” not a saved campaign banner";localPreview.hidden=true;
   const fileError=node("p",null,"callout warning");fileError.id="file-preview-error";fileError.setAttribute("role","alert");fileError.hidden=true;
@@ -448,7 +579,7 @@ function addCampaignBanner(c,inputs) {
     setBusy(true);say("Preparing your chosen file as an unsaved banner. Review and approve it before saving.");
     try{
       const canvas=document.createElement("canvas");canvas.width=localPreview.naturalWidth;canvas.height=localPreview.naturalHeight;
-      if(!canvas.width||!canvas.height||canvas.width>4096||canvas.height>4096)throw new Error("Choose an image no larger than 4096 Ã— 4096 pixels.");
+      if(!canvas.width||!canvas.height||canvas.width>4096||canvas.height>4096)throw new Error("Choose an image no larger than 4096 × 4096 pixels.");
       canvas.getContext("2d").drawImage(localPreview,0,0);
       const imageBase64=canvas.toDataURL("image/png").split(",")[1];
       if(imageBase64.length*3/4>5*1024*1024)throw new Error("This image becomes larger than 5 MB when safely converted to PNG. Choose a smaller image.");
@@ -502,7 +633,7 @@ function addCampaignBanner(c,inputs) {
   }
   if(c){
     const existing=node("div",null,"section-gap");existing.id="saved-campaign-banners";section.append(node("h3","Saved campaign banners"),existing);
-    existing.append(node("p","Loading saved bannersâ€¦","muted"));
+    existing.append(node("p","Loading saved banners…","muted"));
     api("/campaigns/"+encodeURIComponent(c.id)+"/assets").then(assets=>{
       if(editing!==owner)return;
       existing.replaceChildren();
@@ -531,7 +662,7 @@ function viewCampaign(c) {
     const part=node("div");part.append(node("dt",title),node("dd",value));details.append(part);
   }
   $("form-fields").append(details);
-  const savedAssets=node("section",null,"saved-view-assets full");savedAssets.append(node("h3","Saved campaign banners"),node("p","Loading saved bannersâ€¦","muted"));$("form-fields").append(savedAssets);
+  const savedAssets=node("section",null,"saved-view-assets full");savedAssets.append(node("h3","Saved campaign banners"),node("p","Loading saved banners…","muted"));$("form-fields").append(savedAssets);
   api("/campaigns/"+encodeURIComponent(c.id)+"/assets").then(assets=>{
     if(!savedAssets.isConnected)return;savedAssets.replaceChildren(node("h3","Saved campaign banners"));
     if(!assets.length){savedAssets.append(node("p","No banner has been saved for this campaign.","muted"));return;}
@@ -754,6 +885,19 @@ window.addEventListener("hashchange",()=>{
 // Responses can arrive from the separate lead-form tab. Re-read saved data when returning.
 window.addEventListener("focus",()=>{if(state.ready&&!$("editor").open&&!saving&&!document.hidden)refresh();});
 Promise.resolve(window.CRMAuth?.ready).then(access=>{if(!access||access.enabled===false||access.authenticated)refresh();else if(access.error)message("global-error",access.error);});
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

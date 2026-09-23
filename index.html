@@ -1,4 +1,4 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
@@ -14,23 +14,26 @@
     <a href="#dashboard" data-route="dashboard"><span aria-hidden="true">&#9632;</span> Overview</a>
     <a href="#campaigns" data-route="campaigns"><span aria-hidden="true">&#9679;</span> Campaigns</a>
     <a href="#leads" data-route="leads"><span aria-hidden="true">&#8594;</span> Leads &amp; pipeline</a>
+    <a href="#social" data-route="social"><span aria-hidden="true">&#9998;</span> Social drafts</a>
+    <a href="#calendar" data-route="calendar"><span aria-hidden="true">&#128197;</span> Content calendar</a>
+<a href="#reports" data-route="reports"><span aria-hidden="true">&#128202;</span> Reports</a>
     <a href="#model" data-route="model"><span aria-hidden="true">&#9670;</span> Data model</a>
 </nav>
   <div class="sidebar-note"><span class="pill">SPRINT 3 - LOCAL REVIEW</span><p>One workspace.<br>Connected campaign data.</p><small>Use synthetic test data only. Public access and client acceptance are pending.</small></div>
 </aside>
 <div class="content">
-  <header class="topbar"><span>Divinenet / <strong id="breadcrumb">Overview</strong></span><span id="connection" role="status">Connecting…</span><button id="refresh" class="quiet" type="button">Refresh data</button><div id="account-controls"></div></header>
+  <header class="topbar"><span>Divinenet / <strong id="breadcrumb">Overview</strong></span><span id="connection" role="status">Connectingâ€¦</span><button id="refresh" class="quiet" type="button">Refresh data</button><div id="account-controls"></div></header>
   <main id="main" tabindex="-1">
     <div id="notice" role="status" aria-live="polite" hidden></div>
     <div id="global-error" role="alert" hidden></div>
-    <section class="page-head"><div><p class="eyebrow">CAMPAIGN WORKSPACE</p><h1 id="page-title">Your marketing, in focus.</h1><p id="page-description">Plan campaigns, organise responses and review creative in one place.</p></div><button id="primary-action" class="primary">Create campaign <span aria-hidden="true">＋</span></button></section>
-    <div id="view" aria-busy="true"><p class="empty">Loading your workspace…</p></div>
+    <section class="page-head"><div><p class="eyebrow">CAMPAIGN WORKSPACE</p><h1 id="page-title">Your marketing, in focus.</h1><p id="page-description">Plan campaigns, organise responses and review creative in one place.</p></div><button id="primary-action" class="primary">Create campaign <span aria-hidden="true">ï¼‹</span></button></section>
+    <div id="view" aria-busy="true"><p class="empty">Loading your workspaceâ€¦</p></div>
   </main>
 </div>
 </div>
 <dialog id="editor" aria-labelledby="editor-title">
   <form id="record-form">
-    <div class="dialog-head"><div><p class="eyebrow">WORKSPACE RECORD</p><h2 id="editor-title">Create campaign</h2></div><button type="button" id="close-editor" class="quiet" aria-label="Close form">✕</button></div>
+    <div class="dialog-head"><div><p class="eyebrow">WORKSPACE RECORD</p><h2 id="editor-title">Create campaign</h2></div><button type="button" id="close-editor" class="quiet" aria-label="Close form">X</button></div>
     <p id="form-intro" class="muted"></p><div id="form-fields" class="form-grid"></div>
     <p id="form-error" role="alert" hidden></p>
     <div class="dialog-actions"><span id="save-state">Changes are saved when you select Save.</span><button type="button" id="cancel-editor" class="secondary">Cancel</button><button type="submit" id="save-record" class="primary">Save campaign</button></div>
@@ -38,3 +41,6 @@
 </dialog>
 </body>
 </html>
+
+
+

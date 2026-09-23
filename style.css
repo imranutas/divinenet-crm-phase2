@@ -70,3 +70,50 @@ dialog.campaign-editor{width:min(1200px,calc(100% - 32px));background:var(--canv
 .campaign-results-summary{margin:0 0 14px;color:var(--muted);font-size:12px}
 @media(max-width:1000px){.campaign-sections{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:400px){.campaign-section{padding:13px;min-height:76px;gap:8px}.campaign-section-count{font-size:23px}}
+
+/* Preparation workflows stay visibly separate from live publication. */
+.text-draft-section{display:grid;gap:14px;min-width:0;padding:18px;border:1px solid var(--line);border-radius:12px;background:#f7faf8}
+.text-draft-section h3,.text-draft-section p{margin:0}.text-draft-section textarea{min-height:150px}
+.draft-actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.social-connections{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:18px 0}
+.social-draft-list{display:grid;gap:16px}.social-draft-card{min-width:0;padding:20px;border:1px solid var(--line);border-radius:12px}
+.social-content{white-space:pre-wrap;overflow-wrap:anywhere;font-size:14px}.social-draft-card .draft-actions{margin-top:16px}
+@media(max-width:720px){.social-connections{grid-template-columns:minmax(0,1fr)}.text-draft-section{padding:14px}.draft-actions button{max-width:100%;white-space:normal}}
+/* Content Calendar */
+.planner-month-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 20px;
+}
+
+.planner-month-table caption {
+  font-size: 20px;
+  font-weight: bold;
+  padding: 12px;
+}
+
+.planner-month-table th,
+.planner-month-table td {
+  border: 1px solid #ddd;
+  padding: 12px 4px;
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+
+.planner-month-table td {
+  height: 65px;
+  vertical-align: top;
+}
+
+@media (max-width: 600px) {
+  .planner-month-table th,
+  .planner-month-table td {
+    padding: 8px 2px;
+    font-size: 12px;
+  }
+
+  .planner-month-table td {
+    height: 45px;
+  }
+}
+#view label:has(input[type='checkbox']){display:flex;align-items:center;gap:10px;width:auto;margin:16px 0 8px;}#view label:has(input[type='checkbox']) input[type='checkbox']{width:18px;height:18px;margin:0;flex:0 0 auto;}
