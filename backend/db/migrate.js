@@ -28,6 +28,8 @@ function runMigrations(db) {
     db.prepare('INSERT OR IGNORE INTO schema_migrations VALUES (4,?)').run(new Date().toISOString());
   })();
 
+  require('../services/social-drafts').socialDraftSchema(db);
+require('../services/content-plan').contentPlanSchema(db);
   return db;
 }
 

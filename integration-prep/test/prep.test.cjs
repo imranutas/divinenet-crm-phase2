@@ -1,4 +1,4 @@
-'use strict';
+﻿'use strict';
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { readFileSync } = require('node:fs');
@@ -168,7 +168,7 @@ test('closing simulator revokes its connection; next instance starts empty', asy
 
 test('proposed OpenAPI parses, resolves local references and covers only inventory-grounded test paths', () => {
   const spec = JSON.parse(readFileSync(join(__dirname, '..', 'openapi.proposed.json'), 'utf8'));
-  assert.deepEqual(Object.keys(spec.paths).sort(), ['/api/appointments', '/api/customers', '/api/health', '/api/leads']);
+  assert.deepEqual(Object.keys(spec.paths).sort(), ['/api/appointments', '/api/customers', '/api/customers/{id}', '/api/health', '/api/leads']);
   function walk(value) {
     if (!value || typeof value !== 'object') return;
     if (value.$ref) {
@@ -182,3 +182,71 @@ test('proposed OpenAPI parses, resolves local references and covers only invento
   assert.ok(validPayload('customer', spec.components.schemas.PersonInput.example));
   assert.ok(validPayload('appointment', spec.components.schemas.AppointmentInput.example));
 });
+
+test('customer list supports empty results, search and pagination', async t => {
+  const { client, sample } = await setup(t);
+
+  const empty = await client.listCustomers();
+  assert.equal(empty.dataOrigin, 'synthetic-test-data');
+  assert.deepEqual(empty.records, []);
+  assert.equal(empty.pagination.total, 0);
+
+  await client.createCustomer(sample.customer, 'list_customer_001');
+
+  const found = await client.listCustomers({ search: 'Example', page: 1, pageSize: 10 });
+  assert.equal(found.records.length, 1);
+  assert.equal(found.records[0].id, 'sim-customer-1');
+  assert.equal(found.pagination.total, 1);
+
+  const noMatch = await client.listCustomers({ search: 'No Match' });
+  assert.equal(noMatch.records.length, 0);
+});
+
+test('customer detail returns stored synthetic customer and rejects unknown customer', async t => {
+  const { client, sample } = await setup(t);
+
+  const created = await client.createCustomer(sample.customer, 'detail_customer_001');
+  const detail = await client.getCustomer(created.record.id);
+
+  assert.equal(detail.dataOrigin, 'synthetic-test-data');
+  assert.equal(detail.record.id, created.record.id);
+  assert.equal(detail.record.displayName, sample.customer.displayName);
+
+  await assert.rejects(
+    client.getCustomer('sim-customer-999'),
+    { code: 'CUSTOMER_NOT_FOUND', status: 404 }
+  );
+});
+
+test('customer list rejects invalid pagination locally', async t => {
+  const { client } = await setup(t);
+
+  await assert.rejects(
+    client.listCustomers({ page: 0 }),
+    { code: 'INVALID_LOCAL_REQUEST' }
+  );
+
+  await assert.rejects(
+    client.listCustomers({ pageSize: 101 }),
+    { code: 'INVALID_LOCAL_REQUEST' }
+  );
+});
+
+test('customer CSV exports permitted fields and protects spreadsheet formulas', () => {
+  const { exportCustomersCsv } = require('../customer-csv.cjs');
+
+  const csv = exportCustomersCsv([
+    {
+      id: 'sim-customer-1',
+      displayName: '=Fictional Formula Customer',
+      email: 'customer001@example.invalid'
+    }
+  ]);
+
+  assert.ok(csv.startsWith('"ID","Name","Email"'));
+  assert.ok(csv.includes('"sim-customer-1"'));
+  assert.ok(csv.includes('"\'=Fictional Formula Customer"'));
+  assert.ok(csv.includes('"customer001@example.invalid"'));
+});
+
+

@@ -1,4 +1,4 @@
-const express = require('express');
+﻿const express = require('express');
 const path = require('node:path');
 const { createDatabase } = require('./db/connection');
 const { runMigrations } = require('./db/migrate');
@@ -11,6 +11,11 @@ const { attachAssetRoutes } = require('./services/image-assets');
 const { createCampaignSave } = require('./services/campaign-save');
 const { attachLocalAccess } = require('./services/local-access');
 const { attachIntakeRoutes } = require('./services/local-intake');
+const { attachTextDraftRoutes } = require('./services/text-draft-routes');
+const { localTextProviderFromEnvironment } = require('./services/local-text-provider');
+const { attachSocialDraftRoutes } = require('./services/social-drafts');
+const { attachContentPlanRoutes } = require('./services/content-plan');
+const { attachOperationsReportRoutes } = require('./services/operations-report');
 const { validateCampaign, validateLead, parseBudget } = require('./validation');
 
 const fail = (res, status, message) => res.status(status).json({ success: false, message });
@@ -90,6 +95,17 @@ function createApp(options = {}) {
   });
 
   attachLocalAccess(app, { db, enabled: options.accessControl === true, now: options.now });
+
+  attachSocialDraftRoutes(app, { db, accessEnabled: options.accessControl === true, now: options.now });
+attachContentPlanRoutes(app, { db, accessEnabled: options.accessControl === true, now: options.now });
+attachOperationsReportRoutes(app, { db, accessEnabled: options.accessControl === true, now: options.now, provider: options.textProvider !== undefined ? options.textProvider : (options.accessControl === true ? localTextProviderFromEnvironment() : null) });
+
+  attachTextDraftRoutes(app, {
+    db,
+    accessEnabled: options.accessControl === true,
+    provider: options.textProvider !== undefined ? options.textProvider :
+      (options.accessControl === true ? localTextProviderFromEnvironment() : null)
+  });
 
   const assets = attachAssetRoutes(app, { db, campaigns, imageProvider: options.imageProvider,
     imageConfig: options.imageConfig, now: options.now });
@@ -300,3 +316,4 @@ function createApp(options = {}) {
 }
 
 module.exports = { createApp };
+
