@@ -4,7 +4,8 @@ if (process.env.NODE_ENV === "production") {
 }
 const { app, db } = createApp({
   databasePath: process.env.CRM_DATABASE_PATH,
-  imageConfig: process.env.CRM_ENABLE_LIVE_AI === "true" ? undefined : {}
+  imageConfig: process.env.CRM_ENABLE_LIVE_AI === "true" ? undefined : {},
+  accessControl: true
 });
 const server = app.listen(Number(process.env.PORT || 3183), "127.0.0.1", () => {
   console.log("Divinenet CRM local review: http://127.0.0.1:" + server.address().port);

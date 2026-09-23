@@ -13,3 +13,13 @@ test-evidence/
 evidence/
 playwright-report/
 test-results/
+/.codex/
+/.agents/
+/logs/
+/data/
+/backups/
+/ai/
+/runtime/
+/launcher.config.json
+*.gguf
+*.safetensors

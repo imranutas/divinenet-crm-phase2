@@ -33,7 +33,11 @@ async function main() {
     }
   }
   try {
-    const instance = createApp({ databasePath: path.join(temp, 'browser.sqlite'), imageConfig: {} });
+    const instance = createApp({   
+      databasePath: path.join(temp, 'browser.sqlite'),   
+      imageConfig: {},   
+      campaignNow: () => new Date('2026-09-15T02:00:00Z') 
+    });
     db = instance.db;
     server = await new Promise((resolve, reject) => {
       const listener = instance.app.listen(0, '127.0.0.1', () => resolve(listener));
@@ -44,6 +48,7 @@ async function main() {
     const context = await browser.newContext({ viewport: { width: 1440, height: 1000 } });
     await context.route('**/*', route => route.request().url().startsWith(base) ? route.continue() : route.abort());
     page = await context.newPage();
+    await page.clock.setFixedTime(new Date('2026-09-15T02:00:00Z'));
     page.on('dialog', dialog => dialog.accept());
     const records = async name => (await (await fetch(base + '/api/' + name)).json()).data;
     let campaign, lead;
@@ -96,7 +101,7 @@ async function main() {
       assert.equal(await page.locator('#field-channel').inputValue(), 'Website');
       await page.locator('#field-startDate').fill('2026-09-15'); await page.locator('#field-endDate').fill('2026-09-20');
       await page.locator('#field-endDate').fill('');
-      assert.match(await page.locator('#form-fields .callout').innerText(), /Select dates/);
+      assert.match(await page.locator('#campaign-schedule-note').innerText(), /Select dates/);
       await page.locator('#cancel-editor').click();
     });
     await check('An unsuccessful save retains input without adding a record', async () => {
@@ -124,9 +129,19 @@ async function main() {
       }
     });
     await check('Missing AI configuration is visible and generation stays disabled', async () => {
-      await page.locator('a[data-route="studio"]').click();
-      assert.equal(await page.getByRole('button', { name: 'Generate image', exact: true }).isDisabled(), true);
-      assert.equal(db.prepare('SELECT COUNT(*) AS n FROM campaign_assets').get().n, 0);
+      await page.goto(base + '/#studio');
+await page.locator('#connection.online').waitFor();
+await page.waitForFunction(() => location.hash === '#campaigns');
+
+assert.equal(await page.locator('[data-route="studio"]').count(), 0);
+assert.equal(await page.locator('#view .studio-form').count(), 0);
+assert.equal(await page.locator('#editor').isVisible(), false);
+
+await page.locator('#primary-action').click();
+await page.locator('#banner-section').waitFor();
+assert.equal(await page.locator('#generate-banner').isDisabled(), true);
+assert.equal(db.prepare('SELECT COUNT(*) AS n FROM campaign_assets').get().n, 0);
+await page.locator('#cancel-editor').click();
     });
   } catch (error) { process.exitCode = 1; report.error = error.message; }
   finally {

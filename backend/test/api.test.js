@@ -6,7 +6,10 @@ const { createDatabase } = require("../db/connection");
 
 async function createTestServer() {
   const db = createDatabase(":memory:");
-  const { app } = createApp({ db });
+const { app } = createApp({
+  db,
+  campaignNow: () => new Date('2026-09-10T02:00:00Z')
+});
 
   const server = app.listen(0);
 
