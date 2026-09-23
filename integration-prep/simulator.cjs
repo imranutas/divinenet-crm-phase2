@@ -1,4 +1,4 @@
-'use strict';
+﻿'use strict';
 
 const { randomBytes, timingSafeEqual } = require('node:crypto');
 const express = require('../backend/node_modules/express');
@@ -45,6 +45,40 @@ async function startSimulator() {
     if (!sameSecret(req.headers.authorization, `Bearer ${token}`) ||
         !sameSecret(req.headers['x-integration-prep-instance'], instanceId)) return fail(res, 401, 'TEST_AUTH_REQUIRED');
     next();
+  });
+  app.get('/api/customers', (req, res) => {
+    const search = typeof req.query.search === 'string' ? req.query.search.trim().toLowerCase() : '';
+    const page = Number(req.query.page || 1);
+    const pageSize = Number(req.query.pageSize || 20);
+    if (!Number.isInteger(page) || page < 1 || !Number.isInteger(pageSize) || pageSize < 1 || pageSize > 100) {
+      return fail(res, 400, 'INVALID_PAGINATION');
+    }
+    let rows = [...records.customer.values()];
+    if (search) {
+      rows = rows.filter(row =>
+        row.displayName.toLowerCase().includes(search) ||
+        row.email.toLowerCase().includes(search)
+      );
+    }
+    const total = rows.length;
+    const start = (page - 1) * pageSize;
+    return res.json(envelope({
+      dataOrigin: 'synthetic-test-data',
+      records: rows.slice(start, start + pageSize),
+      pagination: { page, pageSize, total }
+    }));
+  });
+
+  app.get('/api/customers/:id', (req, res) => {
+    if (!/^sim-customer-[1-9][0-9]*$/.test(req.params.id)) {
+      return fail(res, 400, 'INVALID_CUSTOMER_ID');
+    }
+    const record = records.customer.get(req.params.id);
+    if (!record) return fail(res, 404, 'CUSTOMER_NOT_FOUND');
+    return res.json(envelope({
+      dataOrigin: 'synthetic-test-data',
+      record
+    }));
   });
   app.use(express.json({ limit: '8kb', strict: true }));
   app.post(Object.keys(ROUTES), async (req, res) => {
@@ -114,3 +148,4 @@ if (require.main === module) {
     process.once('SIGTERM', () => sim.close().then(() => process.exit(0)));
   }).catch(() => { console.error('Local simulator could not start'); process.exitCode = 1; });
 }
+

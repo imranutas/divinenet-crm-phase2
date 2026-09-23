@@ -45,3 +45,54 @@ All records, credentials and retry receipts disappear when a simulator instance 
 Sourav directs real Phase 1 integration only **after 21 September 2026**: 22 September is the earliest planned start, not guaranteed completion. Continue collecting the actual test URL, authorised access/auth format, real request/response examples, ownership/transfer rules, idempotency/failure semantics and appointment rules through **Ignatius** now. Never contact the Phase 1 team directly without changed permission. Do not enter actual credentials into this kit or remove its guards to make a live connection.
 
 After receipt, Imran can prepare a separately reviewed real transport against the actual contract; Ratna reviews schema/mapping, Biraj confirms business rules, and Sushan independently tests the exact agreed build. Keep the current CRM admin/session/role controls. Mock passes cannot close C16/C23 or establish client acceptance. No new project/source licence or public release is implied; this kit only reuses the already provided local open-source runtime/dependency.
+
+## Customer read preparation added 23 September 2026
+
+The synthetic-only preparation harness now also provides provisional customer read behaviour for frontend/integration development. This does not establish the real Phase 1 response contract and does not enable a genuine Phase 1 connection.
+
+### Provisional customer reads
+
+- `GET /api/customers`
+  - Requires the simulator test authentication.
+  - Optional `search` filters the synthetic `displayName` and `email`.
+  - `page` defaults to 1.
+  - `pageSize` defaults to 20 and is limited to 1-100.
+  - Returns `dataOrigin: "synthetic-test-data"`, `records`, and pagination metadata.
+  - Empty results are valid and are returned as an empty records array.
+
+- `GET /api/customers/:id`
+  - Requires the simulator test authentication.
+  - Accepts only the synthetic `sim-customer-{number}` identifier format.
+  - Invalid identifiers are rejected.
+  - Unknown synthetic customers return a not-found response.
+  - Successful responses are explicitly labelled `dataOrigin: "synthetic-test-data"`.
+
+These reads expose only records created inside the current in-memory simulator instance. They are not Phase 1 customer records and must never be labelled as verified live data.
+
+### Customer CSV preparation
+
+`customer-csv.cjs` provides a provisional customer CSV serializer for customer records supplied to it. Current permitted columns are:
+
+`ID, Name, Email`
+
+CSV values are quoted and embedded quotes are escaped. Values beginning with spreadsheet-formula characters are prefixed to reduce CSV formula-injection risk.
+
+The helper does not decide UI export scope. The combined frontend must explicitly define whether export means the displayed page or all filtered customer records. It must use customer records returned through the customer contract and must not rename CRM leads as customers. Existing campaign and lead CSV behaviour remains separate and unchanged.
+
+### Verification
+
+The integration-preparation test suite currently covers the original synthetic write/retry/failure behaviour plus customer empty results, search, pagination, detail lookup, unknown customer handling, invalid local pagination, and customer CSV formula protection.
+
+Latest developer run on 23 September 2026:
+
+`21 tests, 21 passed, 0 failed`
+
+This result applies only to the synthetic integration-preparation harness. It is not evidence of a genuine Phase 1 connection or client acceptance.
+
+### Current integration status
+
+**Test data:** available through the local synthetic-only simulator.
+
+**Verified live:** not configured or verified.
+
+A genuine connection remains disabled until the authorised Phase 1 address, authentication/credentials, exact request and response formats, permissions, filtering/pagination behaviour, and failure semantics are supplied and reviewed. A failed genuine request must never silently fall back to synthetic test data.

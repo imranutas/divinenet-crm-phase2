@@ -1,4 +1,4 @@
-'use strict';
+﻿'use strict';
 
 const { getConnection } = require('./simulator.cjs');
 const { MODE, ROUTES, isObject, validPayload, validRecord } = require('./contract.cjs');
@@ -50,6 +50,45 @@ function createPrepClient(connection, { timeoutMs = 1000 } = {}) {
   }
   return Object.freeze({
     health: () => request('/api/health'),
+    listCustomers: async ({ search = '', page = 1, pageSize = 20 } = {}) => {
+      if (typeof search !== 'string' || !Number.isInteger(page) || page < 1 ||
+          !Number.isInteger(pageSize) || pageSize < 1 || pageSize > 100) {
+        throw new PrepError('INVALID_LOCAL_REQUEST');
+      }
+      const params = new URLSearchParams({ page: String(page), pageSize: String(pageSize) });
+      if (search.trim()) params.set('search', search.trim());
+      const { baseUrl, token, instanceId } = getConnection(connection);
+      const response = await fetch(new URL(`/api/customers?${params}`, baseUrl), {
+        headers: { Authorization: `Bearer ${token}`, 'X-Integration-Prep-Instance': instanceId },
+        redirect: 'manual'
+      });
+      const data = await response.json();
+      if (!response.ok) throw new PrepError(data?.error?.code || 'HTTP_FAILURE', { status: response.status });
+      if (!isObject(data) || data.mode !== MODE || data.instanceId !== instanceId ||
+          data.dataOrigin !== 'synthetic-test-data' || !Array.isArray(data.records) ||
+          !isObject(data.pagination)) throw new PrepError('INVALID_RESPONSE', { status: response.status });
+      return data;
+    },
+    getCustomer: async id => {
+      if (typeof id !== 'string' || !/^sim-customer-[1-9][0-9]*$/.test(id)) {
+        throw new PrepError('INVALID_LOCAL_REQUEST');
+      }
+      const { baseUrl, token, instanceId } = getConnection(connection);
+      const response = await fetch(new URL(`/api/customers/${id}`, baseUrl), {
+        headers: { Authorization: `Bearer ${token}`, 'X-Integration-Prep-Instance': instanceId },
+        redirect: 'manual'
+      });
+      const data = await response.json();
+      if (!response.ok) throw new PrepError(data?.error?.code || 'HTTP_FAILURE', { status: response.status });
+      if (!isObject(data) || data.mode !== MODE || data.instanceId !== instanceId ||
+          data.dataOrigin !== 'synthetic-test-data' || !validRecord('customer', data.record, {
+            synthetic: data.record?.synthetic,
+            sourceRef: data.record?.sourceRef,
+            displayName: data.record?.displayName,
+            email: data.record?.email
+          })) throw new PrepError('INVALID_RESPONSE', { status: response.status });
+      return data;
+    },
     createCustomer: (body, key) => request('/api/customers', body, key),
     createLead: (body, key) => request('/api/leads', body, key),
     createAppointment: (body, key) => request('/api/appointments', body, key)
@@ -73,3 +112,4 @@ async function exerciseCustomerThenAppointment(client, customer, appointment, ke
   }
 }
 module.exports = { createPrepClient, exerciseCustomerThenAppointment, PrepError };
+
