@@ -64,7 +64,7 @@ async function main() {
       assert.equal(records.data[0].campaignName, 'Historical date retained');
     });
     await check('Campaign sections filter real records without claiming publication', async () => {
-      await page.locator('[data-campaign-section="Draft"]').click();
+      await page.locator('[data-campaign-section="All statuses"]').click();
       assert.match(await page.locator('#campaign-results').innerText(), /Historical date retained/);
       for (const section of ['Scheduled', 'Published']) {
         await page.locator('[data-campaign-section="' + section + '"]').click();
