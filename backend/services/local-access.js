@@ -92,7 +92,7 @@ function attachLocalAccess(app, { db, enabled = false, now = Date.now, sessionTt
     res.set('Cache-Control', 'no-store');
     // This is a local-only release. Refuse Host-header rebinding and cross-origin writes,
     // including other localhost ports which may run unrelated applications.
-    if (!['localhost', '127.0.0.1', '[::1]'].includes(req.hostname)) return fail(res, 403, 'Local access only.');
+    if (!['localhost', '127.0.0.1', '[::1]', '172.204.26.146', 'divinenet-crm-imran.newzealandnorth.cloudapp.azure.com'].includes(req.hostname)) return fail(res, 403, 'Local access only.');
     if (!READ_METHODS.has(req.method)) {
       const origin = req.get('origin');
       const expectedOrigin = `${req.protocol}://${req.get('host')}`;
@@ -107,7 +107,9 @@ function attachLocalAccess(app, { db, enabled = false, now = Date.now, sessionTt
     }
     const publicAccount = ['/api/account/status', '/api/account/setup', '/api/account/login'].includes(req.path);
     const publicCapture = /^\/api\/capture\/[A-Za-z0-9_-]+\/?$/.test(req.path) && ['GET', 'POST'].includes(req.method);
-    if (req.path === '/api/health' || publicAccount || publicCapture) return next();
+    const publicMetaWebhook = req.path === '/api/meta/webhook' && ['GET', 'POST'].includes(req.method);
+    const publicApprovedAsset = /^\/api\/public\/assets\/[0-9a-f-]+\/image$/.test(req.path) && READ_METHODS.has(req.method);
+    if (req.path === '/api/health' || publicAccount || publicCapture || publicApprovedAsset || publicMetaWebhook) return next();
     if (!req.localUser) return fail(res, 401, 'Sign in to continue.');
     if (req.localUser.role === 'viewer' && !READ_METHODS.has(req.method) && !['/api/account/logout', '/api/account/password'].includes(req.path)) {
       return fail(res, 403, 'This account is read-only. Ask an administrator for editor access.');

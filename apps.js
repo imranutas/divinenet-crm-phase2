@@ -1,3 +1,4 @@
+window.addEventListener("error",e=>alert("CRM ERROR: "+e.message+" | Line: "+e.lineno));
 ﻿"use strict";
 // Shared API-backed workspace. Legacy browser records are not silently imported.
 const $ = id => document.getElementById(id);
@@ -7,6 +8,7 @@ const statuses = ["Draft","Active","Paused","Completed"];
 const stages = ["New","Contacted","Qualified"];
 let loadVersion=0, editing=null, saving=false, objectUrl=null;
 let connectionError="";
+let textDraftPending=false;
 const canWrite=()=>window.CRMAuth?.canWrite!==false;
 function localDate(date=new Date()) {return [date.getFullYear(),String(date.getMonth()+1).padStart(2,"0"),String(date.getDate()).padStart(2,"0")].join("-");}
 function campaignBusinessDate(date=new Date()) {
@@ -95,7 +97,7 @@ function table(headers) {
 }
 function campaignName(id){return state.campaigns.find(c=>c.id===id)?.campaignName||id;}
 async function refresh() {
-  const version=++loadVersion;$("refresh").disabled=true;$("connection").textContent="Connectingâ€¦";$("view").setAttribute("aria-busy","true");
+  const version=++loadVersion;$("refresh").disabled=true;$("connection").textContent="Connecting?";$("view").setAttribute("aria-busy","true");
   try {
     const [campaigns,leads,clients,brands,analytics,ai]=await Promise.all(["/campaigns","/leads","/clients","/brands","/analytics/summary","/ai/status"].map(path=>api(path)));
     if(version!==loadVersion)return;
@@ -163,7 +165,7 @@ function openPlannedContent(){
     $("save-record").disabled=true;message("form-error","");
     try{
       await api("/content-plan",{method:"POST",body:{
-        requestId:crypto.randomUUID(),
+        requestId:((crypto.randomUUID?.()) || ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g,c=>(c^crypto.getRandomValues(new Uint8Array(1))[0]&15>>c/4).toString(16))),
         campaignId:campaign.input.value,
         channel:channel.input.value,
         plannedDate:plannedDate.input.value,
@@ -274,7 +276,11 @@ function campaignTable(records,limited=false) {
     if(!limited) {
       const actions=node("td"),buttons=node("div",null,"row-actions");
       buttons.append(button("View",()=>viewCampaign(c)));
-      if(canWrite())buttons.append(button("Edit",()=>openCampaign(c)),button("Delete",event=>removeCampaign(c,event.currentTarget),"danger small-button"));
+      if(canWrite()){
+        buttons.append(button("Edit",()=>openCampaign(c)));
+        if(c.channel==="Instagram")buttons.append(button("Publish to Instagram",()=>publishCampaignInstagram(c),"secondary small-button"));
+        buttons.append(button("Delete",event=>removeCampaign(c,event.currentTarget),"danger small-button"));
+      }
       actions.append(buttons);row.append(actions);
     }
     const labels=["Campaign","Channel","Status","Start","Budget",...(limited?[]:["Actions"])];
@@ -282,6 +288,36 @@ function campaignTable(records,limited=false) {
     body.append(row);
   }
   return wrap;
+}
+
+
+async function publishCampaignInstagram(c){
+  if(!confirm("Publish this campaign to Instagram now?"))return;
+  try{
+    const assets=await api("/campaigns/"+encodeURIComponent(c.id)+"/assets");
+    const approved=assets.find(asset=>asset.status==="Approved");
+    if(!approved)throw new Error("Approve and save a campaign banner before publishing.");
+
+    const requestId=crypto.randomUUID?.() || ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g,x=>(x^crypto.getRandomValues(new Uint8Array(1))[0]&15>>x/4).toString(16));
+
+    let draft=await api("/social-drafts",{method:"POST",body:{
+      platform:"Instagram",
+      content:(c.campaignBrief||c.brief||c.campaignName).slice(0,3000),
+      requestId
+    }});
+
+    draft=await api("/social-drafts/"+encodeURIComponent(draft.id)+"/approve",{method:"POST",body:{revision:draft.revision}});
+
+    const result=await api("/social-drafts/"+encodeURIComponent(draft.id)+"/publish",{
+      method:"POST",
+      body:{assetId:approved.id},
+      timeout:60000
+    });
+
+    alert("Published to Instagram successfully. Media ID: "+result.mediaId);
+  }catch(error){
+    alert("Instagram publish failed: "+error.message);
+  }
 }
 function renderDashboard() {
   const analytics = state.analytics || {};
@@ -420,7 +456,7 @@ function closeEditor(){
 function openCampaign(c=null) {
   if(!canWrite())return;
   dialogSetup(c?"Edit campaign":"Create campaign","Use a saved client or brand, or add a reusable name. An existing lead can supply its campaign brief without copying personal contact details.");
-  editing={kind:"campaign",id:c?.id,requestId:crypto.randomUUID()};$("editor").classList.add("campaign-editor");
+  editing={kind:"campaign",id:c?.id,requestId:((crypto.randomUUID?.()) || ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g,c=>(c^crypto.getRandomValues(new Uint8Array(1))[0]&15>>c/4).toString(16)))};$("editor").classList.add("campaign-editor");
   const fields=node("section",null,"campaign-details");fields.id="campaign-details";fields.setAttribute("aria-labelledby","campaign-details-title");
   const detailsTitle=node("h3","Campaign details","full");detailsTitle.id="campaign-details-title";fields.append(detailsTitle);$("form-fields").append(fields);
   const inputs={};
@@ -509,9 +545,64 @@ function openCampaign(c=null) {
     schedule.textContent=(matches.length?matches.length+" active campaign(s) overlap these dates on "+inputs.channel.value+": "+matches.map(x=>x.campaignName).join(", ")+". Overlap is allowed; review your budget and audience.":"No other active campaigns overlap these dates on "+inputs.channel.value+".")+" Rule-based planning check, not AI or a performance prediction.";
   }
   inputs.startDate.addEventListener("change",overlaps);inputs.endDate.addEventListener("change",overlaps);inputs.channel.addEventListener("change",overlaps);overlaps();
+  addCampaignTextDraft(inputs);
   addCampaignBanner(c,inputs);
   $("save-record").textContent="Save campaign";presentDialog();
 }
+
+function addCampaignTextDraft(inputs) {
+  const owner=editing, section=node("section",null,"text-draft-section full");
+  let verified=false;
+  section.setAttribute("aria-labelledby","text-draft-title");
+  const title=node("h3","Text draft");title.id="text-draft-title";
+  const status=node("p","Checking local text configuration?","callout");status.id="text-draft-status";status.setAttribute("role","status");
+  const feedback=node("p",null,"callout");feedback.id="text-draft-message";feedback.setAttribute("role","status");feedback.setAttribute("aria-live","polite");feedback.hidden=true;
+  const consent=node("label",null,"checkbox"),consentInput=node("input");consentInput.type="checkbox";consentInput.id="text-draft-consent";
+  consent.append(consentInput,node("span","I have reviewed the brief and brand and have permission to send them to the configured local model. No contact details."));
+  const generate=button("Generate text draft",generateDraft);generate.id="generate-text-draft";generate.disabled=true;
+  const previewLabel=node("label","Draft — review and edit before applying"),preview=node("textarea");preview.id="text-draft-preview";preview.maxLength=12000;previewLabel.append(preview,node("small","Campaign briefs allow up to 4000 characters. Longer model output is preserved for editing, not truncated."));previewLabel.hidden=true;
+  const apply=button("Apply draft to brief",()=>{
+    if(editing!==owner||saving||owner.banner?.busy||!preview.value.trim()||preview.value.length>4000)return;
+    if(contextKey()!==generatedContext&&!confirm("Your brief or campaign context changed after generation. Replace the current brief with this reviewed draft?"))return;
+    inputs.prompt.value=preview.value;inputs.prompt.dispatchEvent(new Event("input",{bubbles:true}));
+    previewLabel.hidden=true;apply.hidden=true;discard.hidden=true;
+    say("Draft applied to the unsaved brief. Review any banner again, then select Save campaign to keep your changes.");inputs.prompt.focus();
+  });apply.id="apply-text-draft";apply.hidden=true;
+  const discard=button("Discard text draft",()=>{preview.value="";previewLabel.hidden=true;apply.hidden=true;discard.hidden=true;say("Text suggestion discarded. Your campaign brief is unchanged.");},"quiet");discard.id="discard-text-draft";discard.hidden=true;
+  const actions=node("div",null,"draft-actions");actions.append(generate,apply,discard);
+  section.append(title,node("p","Optional local-model suggestion. Configuration is not proof of model health. Nothing is saved, approved or published automatically.","muted"),status,consent,previewLabel,actions,feedback);
+  inputs.prompt.closest("label").after(section);
+  let configured=false,busy=false,blocked=false,requestBlocked=false,generatedContext=null;
+  const brandValue=()=>inputs.brandId.value==="__new__"?inputs.brand.value:(state.brands.find(item=>item.id===inputs.brandId.value)?.name||"");
+  const contextKey=()=>JSON.stringify([inputs.prompt.value,brandValue(),inputs.channel.value]);
+  function say(text,warning=false){feedback.textContent=text;feedback.className="callout"+(warning?" warning":"");feedback.hidden=!text;}
+  function controls(){generate.disabled=!configured||!canWrite()||busy||textDraftPending||blocked||!consentInput.checked;apply.disabled=busy||Boolean(owner.banner?.busy)||!preview.value.trim()||preview.value.length>4000;section.setAttribute("aria-busy",String(busy));}
+  consentInput.addEventListener("change",controls);preview.addEventListener("input",controls);
+  // Another editor may have closed while its provider request was still running.
+  const observe=()=>{if(editing===owner)checkStatus();};window.addEventListener("text-draft-settled",observe,{once:true});
+  owner.cleanupTextDraft=()=>window.removeEventListener("text-draft-settled",observe);
+  function checkStatus(){return api("/text-drafts/status").then(data=>{
+    if(editing!==owner)return;configured=data.configured===true;blocked=requestBlocked||["Generating","NeedsReset"].includes(data.runtimeState);
+    status.textContent=blocked?"Text generation is blocked ("+(requestBlocked?"request needs investigation":data.runtimeState)+"). Ask the operator to check the runtime and follow the documented recovery procedure.":configured?(verified?"Configured and verified.":"Configured, not yet verified. A successful request is required to confirm this model responds."):"Not configured. Text generation is disabled; you can write the brief yourself.";controls();
+  }).catch(error=>{if(editing===owner){configured=false;status.textContent=error.message;status.className="callout warning";controls();}});}
+  if(window.CRMAuth?.enabled===false){status.textContent="Text drafts require authenticated local access. Write your brief manually in this review configuration.";controls();}else checkStatus();
+  async function generateDraft(){
+    if(editing!==owner||busy||textDraftPending||blocked||saving||!configured||!consentInput.checked)return;
+    const prompt=inputs.prompt.value.trim(),brand=brandValue().trim();
+    if(!prompt||prompt.length>4000||brand.length>120){say("Provide a brief of 1?4000 characters and a brand of no more than 120 characters. Your current input is unchanged.",true);return;}
+    const sourceContext=contextKey();busy=true;textDraftPending=true;controls();generate.textContent="Generating draft?";say("Waiting for the local model. You may cancel the form; closing it does not prove model execution stopped.");
+    try{
+      const data=await api("/text-drafts",{method:"POST",body:{prompt,brand,channel:inputs.channel.value},timeout:135000});
+      if(editing!==owner)return;
+      if(contextKey()!==sourceContext){say("Your campaign context changed while generating. The outdated suggestion was discarded; your edits are preserved.",true);return;}
+      if(typeof data.content!=="string"||!data.content.trim()||data.content.length>12000)throw new Error("The model did not return usable text within the preview limit. Your existing brief is unchanged.");
+      generatedContext=sourceContext;preview.value=data.content;previewLabel.hidden=false;apply.hidden=false;discard.hidden=false;configured=true;verified=true;status.textContent="Configured and verified";
+      say("Text draft received from "+String(data.provider||"configured provider")+". Review and edit it, then explicitly apply it. Your brief is unchanged."+(data.content.length>4000?" Edit this output down to 4000 characters before applying.":""),data.content.length>4000);preview.focus();
+    }catch(error){if(editing===owner){requestBlocked=Boolean(error.uncertain||[409,502].includes(error.status));blocked=requestBlocked;say(error.message+(blocked?" Do not retry automatically. Ask the operator to inspect the model and follow the documented recovery procedure.":"")+" Your campaign brief is unchanged.",true);}}
+    finally{busy=false;textDraftPending=false;if(editing===owner){generate.textContent="Generate text draft";controls();}window.dispatchEvent(new Event("text-draft-settled"));}
+  }
+}
+
 
 // Unsaved images stay separate from campaign records until an explicit reviewed save.
 function addCampaignBanner(c,inputs) {
@@ -538,7 +629,7 @@ function addCampaignBanner(c,inputs) {
   const local=node("section",null,"local-file-preview");local.append(node("h3","Use your own banner"));
   const picker=field("local-file","Choose an image file",{type:"file",help:"PNG or JPEG, up to 5 MB and 4096 × 4096 pixels. Local preview only until you select Use this file as banner: it is not uploaded automatically. Review, approve and save to keep it as a campaign asset."});
   picker.input.removeAttribute("name");picker.input.accept="image/png,image/jpeg";
-  const localPreview=node("img");localPreview.id="file-preview";localPreview.alt="Local file preview only â€” not a saved campaign banner";localPreview.hidden=true;
+  const localPreview=node("img");localPreview.id="file-preview";localPreview.alt="Local file preview only — not a saved campaign banner";localPreview.hidden=true;
   const fileError=node("p",null,"callout warning");fileError.id="file-preview-error";fileError.setAttribute("role","alert");fileError.hidden=true;
   const upload=button("Use this file as banner",uploadFile);upload.id="upload-banner";upload.disabled=true;
   let fileRevision=0;
@@ -586,7 +677,7 @@ function addCampaignBanner(c,inputs) {
       const draft=await api("/banner-drafts/upload",{method:"POST",body:{imageBase64,prompt:(prompt.value.trim()||"Uploaded campaign artwork").slice(0,2000)},timeout:30000});
       if(editing!==owner||banner.revision!==requestRevision||contextKey()!==requestContext||fileRevision!==selectedRevision){discardRemote(draft);if(editing===owner)say("Campaign context changed while uploading. The outdated draft was discarded. Select and review the file again.",true);return;}
       discardRemote(previousDraft);banner.draft=draft;banner.draftContext=requestContext;reviewCheck.checked=false;preview.src=draft.imageUrl;preview.hidden=false;review.hidden=false;approve.hidden=false;discard.hidden=false;
-      say("Your uploaded banner is ready for review â€” this is not AI-generated. Approve it, then Save campaign to keep the image in the database.");
+      say("Your uploaded banner is ready for review — this is not AI-generated. Approve it, then Save campaign to keep the image in the database.");
     }catch(error){if(editing===owner)say(error.message+(banner.draft?" Your previous banner remains selected.":" No banner has been attached."),true);}
     finally{if(editing===owner)setBusy(false);}
   }
@@ -596,7 +687,7 @@ function addCampaignBanner(c,inputs) {
     if(!consentCheck.checked){say("Review the prompt and select its permission checkbox first.",true);consentCheck.focus();return;}
     const previousDraft=banner.draft;
     const requestRevision=banner.revision,requestContext=contextKey();
-    setBusy(true);generate.textContent="Generating bannerâ€¦";say("Generating an unsaved image. Keep this form open; the campaign has not been created.");
+    setBusy(true);generate.textContent="Generating banner?";say("Generating an unsaved image. Keep this form open; the campaign has not been created.");
     try{
       const draft=await api("/banner-drafts/generate",{method:"POST",body:{prompt:prompt.value.trim(),consentToSend:true},timeout:195000});
       if(editing!==owner||banner.revision!==requestRevision||contextKey()!==requestContext){
@@ -606,7 +697,7 @@ function addCampaignBanner(c,inputs) {
       }
       discardRemote(previousDraft);banner.draftContext=requestContext;
       banner.draft=draft;reviewCheck.checked=false;preview.src=draft.imageUrl;preview.hidden=false;review.hidden=false;approve.hidden=false;discard.hidden=false;
-      say("Draft ready â€” "+draft.provider+" / "+draft.model+". Review and approve it, then save the campaign. This draft is not yet attached to a campaign.");
+      say("Draft ready — "+draft.provider+" / "+draft.model+". Review and approve it, then save the campaign. This draft is not yet attached to a campaign.");
     }catch(error){
       try{state.ai=await api("/ai/status",{timeout:3000});provider.textContent=state.ai.message;}catch{}
       if(editing!==owner)return;
@@ -723,10 +814,10 @@ $("record-form").addEventListener("submit",async event=>{
     }
     const payload=JSON.stringify(data);
     if(editing.uncertain&&editing.lastPayload!==payload){message("form-error","The previous save is unconfirmed. Restore the previous values and retry that same save, or check the campaign list before starting a new record. Do not create a duplicate.");return;}
-    if(editing.lastPayload&&editing.lastPayload!==payload)editing.requestId=crypto.randomUUID();
+    if(editing.lastPayload&&editing.lastPayload!==payload)editing.requestId=((crypto.randomUUID?.()) || ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g,c=>(c^crypto.getRandomValues(new Uint8Array(1))[0]&15>>c/4).toString(16)));
     editing.lastPayload=payload;data.clientRequestId=editing.requestId;
   }
-  saving=true;$("save-record").disabled=true;$("form-fields").inert=true;$("save-state").textContent="Saving to the databaseâ€¦";message("form-error","");
+  saving=true;$("save-record").disabled=true;$("form-fields").inert=true;$("save-state").textContent="Saving to the database?";message("form-error","");
   try {
     const path=(current.kind==="campaign"?"/campaigns":"/leads")+(current.id?"/"+encodeURIComponent(current.id):"");
     const saved=await api(path,{method:current.id?"PUT":"POST",body:data});
@@ -885,6 +976,8 @@ window.addEventListener("hashchange",()=>{
 // Responses can arrive from the separate lead-form tab. Re-read saved data when returning.
 window.addEventListener("focus",()=>{if(state.ready&&!$("editor").open&&!saving&&!document.hidden)refresh();});
 Promise.resolve(window.CRMAuth?.ready).then(access=>{if(!access||access.enabled===false||access.authenticated)refresh();else if(access.error)message("global-error",access.error);});
+
+
 
 
 

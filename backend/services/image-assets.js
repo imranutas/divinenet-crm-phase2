@@ -1,7 +1,8 @@
-const { randomUUID } = require('node:crypto');
+﻿const { randomUUID } = require('node:crypto');
 const { validatePng } = require('./png-validation');
 const { createLocalImageProvider, validateImagePrompt, MAX_IMAGE_BYTES, GENERATION_TIMEOUT_MS } = require('./local-image-provider');
 const { createImageRuntimeGuard } = require('./image-runtime-guard');
+const { createCloudflareImageProvider, DEFAULT_MODEL } = require('./cloudflare-image-provider');
 
 const DRAFT_TTL_MS = 30 * 60 * 1000;
 const MAX_DRAFTS = 8;
@@ -12,7 +13,8 @@ const problem = (status, message) => Object.assign(new Error(message), { status 
 
 function readImageConfig(env = process.env) {
   return { provider: env.AI_IMAGE_PROVIDER || '', model: env.AI_IMAGE_MODEL || '',
-    baseUrl: env.AI_IMAGE_BASE_URL || 'http://127.0.0.1:1234', approved: env.AI_LIVE_APPROVED === 'true' };
+    baseUrl: env.AI_IMAGE_BASE_URL || 'http://127.0.0.1:1234', approved: env.AI_LIVE_APPROVED === 'true',
+    accountId: env.CLOUDFLARE_ACCOUNT_ID || '', apiToken: env.CLOUDFLARE_API_TOKEN || '' };
 }
 
 function attachAssetRoutes(app, { db, campaigns, imageProvider, imageConfig, now = Date.now }) {
@@ -22,12 +24,15 @@ function attachAssetRoutes(app, { db, campaigns, imageProvider, imageConfig, now
   if (!provider && config.approved && config.provider === 'sd-cpp') {
     try { provider = createLocalImageProvider(config); }
     catch { configurationError = 'The local image runtime URL or model label is invalid.'; }
+  } else if (!provider && config.approved && config.provider === 'cloudflare') {
+    try { provider = createCloudflareImageProvider({ ...config, model: config.model || DEFAULT_MODEL }); }
+    catch { configurationError = 'Cloudflare Workers AI is not configured correctly.'; }
   }
   // Hosted/paid providers are deliberately not selected by this local-only release slice.
   const configured = !!provider;
   const mode = imageProvider && provider ? 'test-double' : (configured ? 'live-configured' : 'unavailable');
-  const providerName = mode === 'test-double' ? 'test-double' : 'sd-cpp';
-  const runtimeGuard = mode === 'live-configured' ? createImageRuntimeGuard(db) : null;
+  const providerName = mode === 'test-double' ? 'test-double' : (provider?.provider || config.provider);
+  const runtimeGuard = mode === 'live-configured' && providerName === 'sd-cpp' ? createImageRuntimeGuard(db) : null;
   db.exec('CREATE TABLE IF NOT EXISTS ai_generation_attempts(id TEXT PRIMARY KEY,created_at TEXT NOT NULL)');
   const fail = (res, status, message) => res.status(status).json({ success: false, message });
   const get = id => db.prepare('SELECT * FROM campaign_assets WHERE id=?').get(id);
@@ -92,6 +97,7 @@ function attachAssetRoutes(app, { db, campaigns, imageProvider, imageConfig, now
       runtimeGuard?.complete();
       return { bytes: result.bytes, provider: providerName, model: provider.model || 'synthetic-fixture', prompt: body.prompt.trim() };
     } catch (error) {
+      console.error('[image-generation]', error?.name || 'Error', error?.message || 'Unknown failure');
       // Closing the synchronous HTTP request does not prove sd-server cancelled its job.
       // Keep a persistent latch: even a CRM restart must not allow overlapping retries.
       runtimeGuard?.uncertain();
@@ -176,6 +182,12 @@ function attachAssetRoutes(app, { db, campaigns, imageProvider, imageConfig, now
     db.prepare("UPDATE campaign_assets SET status='Approved',approved_at=COALESCE(approved_at,?) WHERE id=?").run(new Date(now()).toISOString(), asset.id);
     res.json({ success: true, data: metadata(get(asset.id)) });
   });
+  app.get('/api/public/assets/:id/image', (req, res) => {
+    const asset = get(req.params.id);
+    if (!asset || asset.status !== 'Approved') return fail(res, 404, 'Approved asset not found');
+    res.type('png').send(asset.image_data);
+  });
+
   app.get('/api/assets/:id/image', (req, res) => {
     const asset = get(req.params.id);
     if (!asset) return fail(res, 404, 'Asset not found');
@@ -209,3 +221,7 @@ function attachAssetRoutes(app, { db, campaigns, imageProvider, imageConfig, now
 }
 
 module.exports = { readImageConfig, attachAssetRoutes, DRAFT_TTL_MS, MAX_DRAFTS, MAX_DRAFT_BYTES, MAX_UPLOAD_BYTES };
+
+
+
+

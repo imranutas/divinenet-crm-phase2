@@ -9,11 +9,13 @@ const { validateStageTransition } = require('./services/lead-pipeline');
 const { createAnalyticsService } = require('./services/analytics-service');
 const { attachAssetRoutes } = require('./services/image-assets');
 const { createCampaignSave } = require('./services/campaign-save');
+const { automaticCampaignStatus } = require('./services/campaign-status');
 const { attachLocalAccess } = require('./services/local-access');
 const { attachIntakeRoutes } = require('./services/local-intake');
 const { attachTextDraftRoutes } = require('./services/text-draft-routes');
 const { localTextProviderFromEnvironment } = require('./services/local-text-provider');
 const { attachSocialDraftRoutes } = require('./services/social-drafts');
+const { attachMetaLeadWebhook } = require('./services/meta-lead-webhook');
 const { attachContentPlanRoutes } = require('./services/content-plan');
 const { attachOperationsReportRoutes } = require('./services/operations-report');
 const { validateCampaign, validateLead, parseBudget } = require('./validation');
@@ -46,6 +48,7 @@ function toApiLead(row) {
 
 function createApp(options = {}) {
   const app = express();
+  app.set('trust proxy', 'loopback');
 
   // Tests can supply a controlled business clock.
   // Normal application startup uses the actual current time.
@@ -60,7 +63,7 @@ function createApp(options = {}) {
   // Local access control supplements the loopback-only transport boundary.
   app.disable('x-powered-by');
   app.use((req, res, next) => {
-    if (!['localhost', '127.0.0.1', '[::1]'].includes(req.hostname)) {
+    if (!['localhost', '127.0.0.1', '[::1]', '172.204.26.146', 'divinenet-crm-imran.newzealandnorth.cloudapp.azure.com'].includes(req.hostname)) {
       return fail(res, 403, 'This review server only accepts localhost requests');
     }
     res.set('X-Content-Type-Options', 'nosniff');
@@ -70,7 +73,7 @@ function createApp(options = {}) {
     if (req.path.startsWith('/api/')) res.set('Cache-Control', 'no-store');
     const origin = req.get('origin');
     if (origin) {
-      const allowed = ['http://' + req.get('host'), 'http://localhost:8080', 'http://127.0.0.1:8080'];
+      const allowed = ['http://' + req.get('host'), 'https://' + req.get('host'), 'http://localhost:8080', 'http://127.0.0.1:8080'];
       if (!allowed.includes(origin)) return fail(res, 403, 'Origin is not allowed');
       res.set('Access-Control-Allow-Origin', origin);
       res.vary('Origin');
@@ -97,6 +100,7 @@ function createApp(options = {}) {
   attachLocalAccess(app, { db, enabled: options.accessControl === true, now: options.now });
 
   attachSocialDraftRoutes(app, { db, accessEnabled: options.accessControl === true, now: options.now });
+  attachMetaLeadWebhook(app, { db });
 attachContentPlanRoutes(app, { db, accessEnabled: options.accessControl === true, now: options.now });
 attachOperationsReportRoutes(app, { db, accessEnabled: options.accessControl === true, now: options.now, provider: options.textProvider !== undefined ? options.textProvider : (options.accessControl === true ? localTextProviderFromEnvironment() : null) });
 
@@ -169,7 +173,7 @@ attachOperationsReportRoutes(app, { db, accessEnabled: options.accessControl ===
         endDate: body.endDate,
         budget: parseBudget(body.budget),
         channel: body.channel,
-        status: body.status || 'Draft',
+        status: automaticCampaignStatus({ status: body.status || 'Draft', start_date: body.startDate, end_date: body.endDate }, campaignNow()),
         createdAt: now,
         updatedAt: now
       });
@@ -199,6 +203,8 @@ attachOperationsReportRoutes(app, { db, accessEnabled: options.accessControl ===
       if (error) {
         throw Object.assign(new Error(error), { status: 400 });
       }
+
+      updated.status = automaticCampaignStatus({ status: updated.status, start_date: updated.startDate, end_date: updated.endDate }, campaignNow());
 
       updated.budget = parseBudget(updated.budget);
 
@@ -316,4 +322,7 @@ attachOperationsReportRoutes(app, { db, accessEnabled: options.accessControl ===
 }
 
 module.exports = { createApp };
+
+
+
 

@@ -139,8 +139,47 @@ function attachSocialDraftRoutes(app, { db, accessEnabled = false, now = () => n
       message: 'Approved text export only. No account is connected and nothing was sent to a platform. Media and platform rules must be checked before publication.',
       draft: publicDraft(req.socialDraft) });
   });
-  app.post('/api/social-drafts/:id/publish', requireRead, requireWrite, withDraft, (_req, res) =>
-    failure(res, 503, 'No publishing connector is enabled. Nothing was submitted to a social platform.'));
+  app.post('/api/social-drafts/:id/publish', requireRead, requireWrite, withDraft, async (req, res) => {
+    if (req.socialDraft.status !== 'Approved') {
+      return failure(res, 409, 'Review and approve this draft before publishing.');
+    }
+    if (req.socialDraft.platform !== 'Instagram') {
+      return failure(res, 503, 'Publishing is currently connected for Instagram only.');
+    }
+    if (!req.body || !uuid(req.body.assetId)) {
+      return failure(res, 400, 'Provide the approved banner assetId.');
+    }
+
+    const asset = db.prepare(
+      "SELECT id,status FROM campaign_assets WHERE id=?"
+    ).get(req.body.assetId);
+
+    if (!asset || asset.status !== 'Approved') {
+      return failure(res, 409, 'Choose an approved campaign banner before publishing.');
+    }
+
+    try {
+      const { publishInstagram } = require('./instagram-provider');
+      const baseUrl = process.env.CRM_PUBLIC_BASE_URL;
+      if (!baseUrl) return failure(res, 503, 'Public CRM URL is not configured.');
+
+      const result = await publishInstagram({
+        userId: process.env.INSTAGRAM_USER_ID,
+        accessToken: process.env.INSTAGRAM_ACCESS_TOKEN,
+        imageUrl: `${baseUrl}/api/public/assets/${asset.id}/image`,
+        caption: req.socialDraft.content
+      });
+
+      return success(res, {
+        published: true,
+        platform: 'Instagram',
+        mediaId: result.mediaId,
+        containerId: result.containerId
+      });
+    } catch (error) {
+      return failure(res, 502, error.message || 'Instagram publishing failed.');
+    }
+  });
 }
 
 module.exports = { PLATFORMS, socialDraftSchema, attachSocialDraftRoutes };

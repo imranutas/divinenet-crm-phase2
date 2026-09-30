@@ -3,7 +3,7 @@
 const http = require('node:http');
 
 // Operator-only settings: never accept an endpoint or model from browser input.
-function createLocalTextProvider({ model, port = 11434, timeoutMs = 60000 } = {}) {
+function createLocalTextProvider({ model, port = 11434, timeoutMs = 120000 } = {}) {
   if (typeof model !== 'string' || !/^[a-zA-Z0-9][a-zA-Z0-9._:/-]{0,119}$/.test(model) || /cloud/i.test(model)) {
     throw new Error('Choose a downloaded local model, not a cloud model.');
   }

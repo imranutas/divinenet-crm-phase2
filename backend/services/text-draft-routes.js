@@ -6,13 +6,14 @@ const { createTextRuntimeGuard } = require('./text-runtime-guard');
 function attachTextDraftRoutes(app, { db, provider = null, accessEnabled = false } = {}) {
   const workflow = createContentWorkflow({ provider });
   const guard = createTextRuntimeGuard(db);
+  let verified = false;
   // Route-level fail-closed check also protects legacy no-auth app instances.
   const authorised = (req, res, next) => {
     if (!accessEnabled || !req.localUser) return res.status(401).json({ success: false, message: 'Sign in to use text drafts.' });
     next();
   };
   app.get('/api/text-drafts/status', authorised, (_req, res) => res.json({ success: true, data: {
-    configured: Boolean(provider), readiness: provider ? 'Configured, not yet verified' : 'Not configured',
+    configured: Boolean(provider), readiness: !provider ? 'Not configured' : verified ? 'Configured and verified' : 'Configured, not yet verified',
     requiresHumanApproval: true, savesAutomatically: false, publishes: false, runtimeState: guard.state()
   } }));
   app.post('/api/text-drafts', authorised, async (req, res) => {
@@ -31,7 +32,7 @@ function attachTextDraftRoutes(app, { db, provider = null, accessEnabled = false
       message: 'A draft is running or previous execution is uncertain. Stop the local model and CRM and follow the documented text-runtime recovery before retrying.' });
     try {
       const result = await workflow.generateContent(body);
-      if (result.success) guard.complete(operation); else guard.uncertain(operation);
+      if (result.success) { verified = true; guard.complete(operation); } else guard.uncertain(operation);
       res.status(result.statusCode).json(result);
     } catch {
       guard.uncertain(operation);
