@@ -156,7 +156,8 @@ test('inactive campaigns reject new responses but preserve a previous valid retr
   const e = await environment(t); const { c, route } = await linkFor(e); const payload = responseBody();
   const receipt = await e.request(route, 'POST', payload, 201);
   for (const status of ['Draft', 'Paused', 'Completed']) {
-    await e.request('/api/campaigns/' + c.id, 'PUT', { status });
+    const update = status === 'Draft' ? { status, startDate: '2026-09-19' } : { status };
+    await e.request('/api/campaigns/' + c.id, 'PUT', update);
     await e.request(route, 'POST', responseBody(), 409);
     assert.deepEqual(await e.request(route, 'POST', payload), receipt);
   }
