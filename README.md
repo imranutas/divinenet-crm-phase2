@@ -1,39 +1,21 @@
-﻿# Divinenet CRM Phase 2
+# Divinenet CRM
 
-This repository contains the Divinenet AI-Enabled Marketing CRM Phase 2 project.
+Modern local campaign and lead workspace with SQLite storage, inline reviewed AI/uploaded banners, campaign response forms, accounts and role permissions.
 
-## Current Sprint 3 Review Build
+Run START-CRM.cmd, then open **http://127.0.0.1:3192/** and set up your administrator account. See [START_HERE.md](START_HERE.md) for use, backup, recovery and scope.
 
-The default `main` branch does not yet represent the final Sprint 3 release.
+- Node.js 24 and npm are required.
+- For a fresh source checkout, run `npm.cmd ci` and `npm.cmd --prefix backend ci`.
+- Browser verification additionally requires `npx.cmd playwright install chromium`.
+- STOP-CRM.cmd: safely stop this copy.
+- BACKUP-CRM.cmd: new validated database snapshot.
+- RESTORE-CRM.cmd "backup path": validate; add --apply after stopping to restore while retaining prior files.
+- `npm.cmd run verify`: serial backend, browser, notification, banner, launcher, recovery, workflow, frontend-runtime, campaign-date and access checks. Chromium is the default; select Edge explicitly with `$env:CRM_BROWSER_CHANNEL='msedge'` in PowerShell. Source hashes and results are saved under `test-evidence/`.
+- Run `npm.cmd run test:integration-prep` separately for the synthetic integration-contract checks.
+- Genuine AI verification is separate: set CRM_TEST_LIVE_AI=true and run node scripts/access-browser-check.cjs with the reviewed runtime running. Do not overlap inference tests.
 
-For the current Sprint 3 review candidate, use:
+Working data: `data/divinenet.sqlite`. Local CRM: port 3192; separately configured image runtime: port 1234. The model/runtime is not included or downloaded automatically. Standalone backend debugging uses port 3194 and `backend/db/local-review.sqlite`; see `backend/README.md`.
 
-**Branch:** `sprint3/final-local-product`
+External Phase 1/customer/appointment services, direct social publishing and public deployment are not connected in this local build; they remain separately gated requirements. Scheduled/Published campaign-library sections are filters, not a scheduler or proof of publication. Independent QA and client acceptance remain separate from engineering verification.
 
-The current review build is started using:
-
-`START-CRM.cmd`
-
-Then open:
-
-`http://127.0.0.1:3192/`
-
-The working SQLite database for the review candidate is:
-
-`data/divinenet.sqlite`
-
-See `START_HERE.md` on the Sprint 3 review branch for the current setup, startup, backup, recovery and scope instructions.
-
-## Technical Backend Documentation
-
-Detailed backend setup, database configuration, schema notes and verification information are maintained in:
-
-`backend/README.md`
-
-## Current Status
-
-Sprint 3 is still under integration and review. The review candidate should not be treated as the final merged release or as evidence of independent QA or client acceptance.
-
-Developer verification, independent QA and client acceptance are recorded separately.
-
-Do not commit API keys, passwords, tokens, provider credentials, local databases, AI model files or other runtime secrets to the repository.
+Campaign dates use Australia/Sydney for this demonstration build. New campaigns cannot start in the past; an existing campaign can keep its unchanged historical start date. Successful identical save retries use their stored receipt, including across midnight. The business timezone still requires approval for deployment.

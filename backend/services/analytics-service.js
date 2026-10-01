@@ -43,7 +43,19 @@ function createAnalyticsService(
       totalCampaigns: campaigns.length,
       totalLeads: leads.length,
       leadsByStage,
-      leadsBySource
+      leadsBySource,
+      activeCampaigns: campaigns.filter(campaign => campaign.status === 'Active').length,
+      qualifiedLeads: leadsByStage.Qualified,
+      qualificationRate: leads.length ? Math.round(leadsByStage.Qualified / leads.length * 10000) / 100 : null,
+      definitions: {
+        totalCampaigns: 'Count of stored campaign records, including all statuses.',
+        activeCampaigns: 'Count of stored campaigns explicitly marked Active; dates do not automatically change status.',
+        totalLeads: 'Count of stored lead records, not distinct customers or people.',
+        qualifiedLeads: 'Count of lead records currently at the Qualified pipeline stage.',
+        qualificationRate: 'Qualified lead records / all stored lead records x 100; null when there are no leads. This is not a customer conversion rate.',
+        period: 'All currently stored records. No historical time-window or commercial performance claim.',
+        thresholds: 'No business targets have been configured or approved.'
+      }
     };
   }
 

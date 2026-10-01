@@ -1,4 +1,4 @@
-const express = require('express');
+﻿const express = require('express');
 const path = require('node:path');
 const { createDatabase } = require('./db/connection');
 const { runMigrations } = require('./db/migrate');
@@ -8,6 +8,16 @@ const { createDirectoryRepository } = require('./repositories/directoryRepositor
 const { validateStageTransition } = require('./services/lead-pipeline');
 const { createAnalyticsService } = require('./services/analytics-service');
 const { attachAssetRoutes } = require('./services/image-assets');
+const { createCampaignSave } = require('./services/campaign-save');
+const { automaticCampaignStatus } = require('./services/campaign-status');
+const { attachLocalAccess } = require('./services/local-access');
+const { attachIntakeRoutes } = require('./services/local-intake');
+const { attachTextDraftRoutes } = require('./services/text-draft-routes');
+const { localTextProviderFromEnvironment } = require('./services/local-text-provider');
+const { attachSocialDraftRoutes } = require('./services/social-drafts');
+const { attachMetaLeadWebhook } = require('./services/meta-lead-webhook');
+const { attachContentPlanRoutes } = require('./services/content-plan');
+const { attachOperationsReportRoutes } = require('./services/operations-report');
 const { validateCampaign, validateLead, parseBudget } = require('./validation');
 
 const fail = (res, status, message) => res.status(status).json({ success: false, message });
@@ -38,6 +48,11 @@ function toApiLead(row) {
 
 function createApp(options = {}) {
   const app = express();
+  app.set('trust proxy', 'loopback');
+
+  // Tests can supply a controlled business clock.
+  // Normal application startup uses the actual current time.
+    const campaignNow = options.campaignNow ?? (() => new Date());
   const db = options.db || createDatabase(options.databasePath);
   runMigrations(db);
   const campaigns = createCampaignRepository(db);
@@ -45,10 +60,10 @@ function createApp(options = {}) {
   const directory = createDirectoryRepository(db);
   const analytics = createAnalyticsService(campaigns, leads);
 
-  // This unauthenticated review server remains restricted to localhost.
+  // Local access control supplements the loopback-only transport boundary.
   app.disable('x-powered-by');
   app.use((req, res, next) => {
-    if (!['localhost', '127.0.0.1', '[::1]'].includes(req.hostname)) {
+    if (!['localhost', '127.0.0.1', '[::1]', '172.204.26.146', 'divinenet-crm-imran.newzealandnorth.cloudapp.azure.com'].includes(req.hostname)) {
       return fail(res, 403, 'This review server only accepts localhost requests');
     }
     res.set('X-Content-Type-Options', 'nosniff');
@@ -58,7 +73,7 @@ function createApp(options = {}) {
     if (req.path.startsWith('/api/')) res.set('Cache-Control', 'no-store');
     const origin = req.get('origin');
     if (origin) {
-      const allowed = ['http://' + req.get('host'), 'http://localhost:8080', 'http://127.0.0.1:8080'];
+      const allowed = ['http://' + req.get('host'), 'https://' + req.get('host'), 'http://localhost:8080', 'http://127.0.0.1:8080'];
       if (!allowed.includes(origin)) return fail(res, 403, 'Origin is not allowed');
       res.set('Access-Control-Allow-Origin', origin);
       res.vary('Origin');
@@ -71,6 +86,8 @@ function createApp(options = {}) {
     }
     next();
   });
+  // Only the bounded PNG upload needs a larger envelope; ordinary API requests stay small.
+  app.use('/api/banner-drafts/upload', express.json({ limit: '7mb' }));
   app.use(express.json({ limit: '100kb' }));
   app.use((req, res, next) => {
     if (['POST', 'PUT', 'PATCH'].includes(req.method) &&
@@ -79,6 +96,24 @@ function createApp(options = {}) {
     }
     next();
   });
+
+  attachLocalAccess(app, { db, enabled: options.accessControl === true, now: options.now });
+
+  attachSocialDraftRoutes(app, { db, accessEnabled: options.accessControl === true, now: options.now });
+  attachMetaLeadWebhook(app, { db });
+attachContentPlanRoutes(app, { db, accessEnabled: options.accessControl === true, now: options.now });
+attachOperationsReportRoutes(app, { db, accessEnabled: options.accessControl === true, now: options.now, provider: options.textProvider !== undefined ? options.textProvider : (options.accessControl === true ? localTextProviderFromEnvironment() : null) });
+
+  attachTextDraftRoutes(app, {
+    db,
+    accessEnabled: options.accessControl === true,
+    provider: options.textProvider !== undefined ? options.textProvider :
+      (options.accessControl === true ? localTextProviderFromEnvironment() : null)
+  });
+
+  const assets = attachAssetRoutes(app, { db, campaigns, imageProvider: options.imageProvider,
+    imageConfig: options.imageConfig, now: options.now });
+  const saveCampaign = createCampaignSave(db, campaigns, assets);
 
   for (const [route, list, create] of [
     ['clients', directory.listClients, directory.createClient],
@@ -102,6 +137,7 @@ function createApp(options = {}) {
     const row = db.prepare('UPDATE app_sequences SET value=value+1 WHERE name=? RETURNING value').get(name);
     return prefix + String(row.value).padStart(3, '0');
   });
+  attachIntakeRoutes(app, { db, campaigns, leads, nextId, now: options.now });
 
   app.get('/api/health', (_req, res) => message(res, 'Divinenet CRM API is running'));
   app.get('/api/campaigns', (_req, res) => data(res, campaigns.getAll().map(toApiCampaign)));
@@ -112,18 +148,38 @@ function createApp(options = {}) {
   });
   app.post('/api/campaigns', (req, res) => {
     const body = req.body;
-    const error = validateCampaign(body);
-    if (error) return fail(res, 400, error);
-    const now = new Date().toISOString();
-    const saved = campaigns.create({
-      id: nextId('campaign', 'CAM-'), clientId: body.clientId, brandId: body.brandId,
-      campaignName: String(body.campaignName).trim(), prompt: String(body.prompt).trim(),
-      client: optionalText(body.client), brand: optionalText(body.brand),
-      objective: optionalText(body.objective), targetAudience: optionalText(body.targetAudience),
-      startDate: body.startDate, endDate: body.endDate, budget: parseBudget(body.budget),
-      channel: body.channel, status: body.status || 'Draft', createdAt: now, updatedAt: now
+
+    const result = saveCampaign('create', body, () => {
+     const error = validateCampaign(body, {
+  now: campaignNow()
+});
+      if (error) {
+        throw Object.assign(new Error(error), { status: 400 });
+      }
+
+      const now = new Date().toISOString();
+
+      return campaigns.create({
+        id: nextId('campaign', 'CAM-'),
+        clientId: body.clientId,
+        brandId: body.brandId,
+        campaignName: String(body.campaignName).trim(),
+        prompt: String(body.prompt).trim(),
+        client: optionalText(body.client),
+        brand: optionalText(body.brand),
+        objective: optionalText(body.objective),
+        targetAudience: optionalText(body.targetAudience),
+        startDate: body.startDate,
+        endDate: body.endDate,
+        budget: parseBudget(body.budget),
+        channel: body.channel,
+        status: automaticCampaignStatus({ status: body.status || 'Draft', start_date: body.startDate, end_date: body.endDate }, campaignNow()),
+        createdAt: now,
+        updatedAt: now
+      });
     });
-    data(res, toApiCampaign(saved), 201);
+
+    data(res, toApiCampaign(result.saved), result.replayed ? 200 : 201);
   });
   app.put('/api/campaigns/:id', (req, res) => {
     const existing = campaigns.getById(req.params.id);
@@ -139,13 +195,31 @@ function createApp(options = {}) {
     for (const field of ['client', 'brand']) {
       if (Object.hasOwn(body, field + 'Id') && !Object.hasOwn(body, field)) updated[field] = '';
     }
-    const error = validateCampaign(updated);
-    if (error) return fail(res, 400, error);
-    updated.budget = parseBudget(updated.budget);
-    for (const field of ['campaignName', 'prompt', 'client', 'brand', 'objective', 'targetAudience']) {
-      if (typeof updated[field] === 'string') updated[field] = updated[field].trim();
-    }
-    data(res, toApiCampaign(campaigns.update(req.params.id, updated)));
+      const result = saveCampaign('update:' + req.params.id, body, () => {
+ const error = validateCampaign(updated, {
+  existingStartDate: current.startDate,
+  now: campaignNow()
+});
+      if (error) {
+        throw Object.assign(new Error(error), { status: 400 });
+      }
+
+      updated.status = automaticCampaignStatus({ status: updated.status, start_date: updated.startDate, end_date: updated.endDate }, campaignNow());
+
+      updated.budget = parseBudget(updated.budget);
+
+      for (const field of [
+        'campaignName', 'prompt', 'client',
+        'brand', 'objective', 'targetAudience'
+      ]) {
+        if (typeof updated[field] === 'string') {
+          updated[field] = updated[field].trim();
+        }
+      }
+
+      return campaigns.update(req.params.id, updated);
+    });
+    data(res, toApiCampaign(result.saved));
   });
   app.delete('/api/campaigns/:id', (req, res) => {
     if (!campaigns.getById(req.params.id)) return fail(res, 404, 'Campaign not found');
@@ -220,18 +294,19 @@ function createApp(options = {}) {
     if (!leads.getById(req.params.id)) return fail(res, 404, 'Lead not found');
     data(res, db.prepare('SELECT * FROM lead_stage_history WHERE lead_id=? ORDER BY changed_at,id').all(req.params.id));
   });
-  attachAssetRoutes(app, { db, campaigns, imageProvider: options.imageProvider, imageConfig: options.imageConfig });
 
   // Expose only the chosen UI files, never the database or backend sources.
   const publicRoot = path.resolve(__dirname, '..');
   const publicFiles = {
+    '/auth.html': 'auth.html', '/auth.js': 'auth.js', '/auth.css': 'auth.css',
     '/': 'index.html', '/index.html': 'index.html', '/apps.js': 'apps.js', '/style.css': 'style.css',
     '/lead-prototype.html': 'lead-prototype.html', '/lead-prototype.js': 'lead-prototype.js',
-    '/lead-style.css': 'lead-style.css'
+    '/lead-style.css': 'lead-style.css', '/capture.js': 'capture.js', '/capture.css': 'capture.css'
   };
   for (const [route, file] of Object.entries(publicFiles)) {
     app.get(route, (_req, res) => res.sendFile(path.join(publicRoot, file)));
   }
+  app.get('/capture/:token', (_req, res) => res.sendFile(path.join(publicRoot, 'capture.html')));
   app.use((_req, res) => fail(res, 404, 'Route not found'));
   app.use((error, _req, res, _next) => {
     let status = 500, text = 'The request could not be completed';
@@ -240,9 +315,14 @@ function createApp(options = {}) {
     else if (error.code === 'SQLITE_CONSTRAINT_FOREIGNKEY') { status = 409; text = 'Record is linked to other records and cannot be deleted'; }
     else if (error.code === 'SQLITE_CONSTRAINT_UNIQUE') { status = 409; text = 'Record already exists'; }
     else if (error.status === 400 || error.statusCode === 400) { status = 400; text = error.message; }
+    else if ([409, 410].includes(error.status)) { status = error.status; text = error.message; }
     fail(res, status, text);
   });
   return { app, db };
 }
 
 module.exports = { createApp };
+
+
+
+

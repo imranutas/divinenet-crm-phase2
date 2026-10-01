@@ -29,11 +29,30 @@ function textFields(value, required, optional) {
   }
   return null;
 }
-function validateCampaign(value) {
+function validateCampaign(value, options = {}) {
   const error = textFields(value, ['campaignName', 'prompt', 'startDate', 'endDate', 'channel'], ['client', 'brand', 'clientId', 'brandId', 'objective', 'targetAudience', 'status']);
   if (error) return error;
   if (!isoDate(value.startDate) || !isoDate(value.endDate)) return 'Start date and end date must be valid dates';
   if (value.endDate < value.startDate) return 'End date cannot be before start date';
+    // Use the agreed demonstration timezone, not the server's local timezone.
+  const dateParts = new Intl.DateTimeFormat('en-AU', {
+    timeZone: 'Australia/Sydney',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  }).formatToParts(options.now ?? new Date());
+
+  const part = type => dateParts.find(item => item.type === type).value;
+  const today = `${part('year')}-${part('month')}-${part('day')}`;
+
+  // Existing records may keep their original historical start date.
+  const keepsOriginalStart =
+    options.existingStartDate !== undefined &&
+    value.startDate === options.existingStartDate;
+
+  if (!keepsOriginalStart && value.startDate < today) {
+    return 'Start date cannot be before today.';
+  }
   if (Number.isNaN(parseBudget(value.budget))) return 'Budget must be a non-negative number';
   if (!CHANNELS.includes(value.channel)) return 'Channel must be Facebook, Instagram, LinkedIn or Website';
   if (value.status !== undefined && !STATUSES.includes(value.status)) return 'Status must be Draft, Active, Paused or Completed';

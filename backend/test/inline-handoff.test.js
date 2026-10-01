@@ -31,7 +31,12 @@ async function environment(t, seed, imageProvider) {
   async function start() {
     db = createDatabase(filename);
     if (seed) { seed(db); seed = null; }
-    const { app } = createApp({ db, imageProvider, imageConfig: {} });
+   const { app } = createApp({
+  db,
+  imageProvider,
+  imageConfig: {},
+  campaignNow: () => new Date('2026-09-10T02:00:00Z')
+});
     server = app.listen(0, '127.0.0.1');
     await once(server, 'listening');
     base = 'http://127.0.0.1:' + server.address().port;

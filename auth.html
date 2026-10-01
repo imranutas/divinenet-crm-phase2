@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Your account | Divinenet CRM</title>
+  <link rel="stylesheet" href="auth.css">
+  <script defer src="auth.js"></script>
+</head>
+<body class="account-page">
+  <main class="account-shell">
+    <a class="account-brand" href="/">d. <span>divinenet</span></a>
+    <p class="account-eyebrow">MARKETING WORKSPACE · LOCAL ACCESS</p>
+    <h1 id="account-title">Your workspace, securely signed in.</h1>
+    <p id="account-intro">Checking this local workspace…</p>
+    <p id="account-message" class="account-message" role="status" aria-live="polite" hidden></p>
+
+    <section id="account-entry" hidden>
+      <form id="account-entry-form" class="account-card">
+        <h2 id="entry-heading">Sign in</h2>
+        <label for="entry-username">Username</label>
+        <input id="entry-username" name="username" autocomplete="username" minlength="3" maxlength="40" pattern="[a-zA-Z0-9][a-zA-Z0-9._-]{2,39}" required>
+        <small>3–40 letters, numbers, dots, underscores or hyphens.</small>
+        <label for="entry-password">Password</label>
+        <input id="entry-password" name="password" type="password" autocomplete="current-password" maxlength="128" required>
+        <p id="setup-password-help" hidden>Choose a unique password with at least 12 characters. Keep it safely: this local app does not send password-recovery emails.</p>
+        <button id="entry-submit" type="submit">Sign in</button>
+      </form>
+    </section>
+
+    <section id="account-signed-in" hidden>
+      <div class="account-card account-actions">
+        <p id="account-identity"></p>
+        <a class="account-button" id="account-back" href="/">Open CRM</a>
+        <button id="account-logout" type="button" class="secondary">Sign out</button>
+      </div>
+      <form id="account-password-form" class="account-card">
+        <h2>Change your password</h2>
+        <label for="current-password">Current password</label>
+        <input id="current-password" type="password" autocomplete="current-password" maxlength="128" required>
+        <label for="new-password">New password</label>
+        <input id="new-password" type="password" autocomplete="new-password" minlength="12" maxlength="128" required>
+        <small>At least 12 characters. Changing it signs out your other sessions.</small>
+        <button type="submit">Update password</button>
+      </form>
+      <div id="account-admin" hidden>
+        <form id="account-add-form" class="account-card">
+          <h2>Add a local account</h2>
+          <p>Administrator manages accounts. Editor changes CRM records. Viewer can read records only.</p>
+          <label for="add-username">Username</label>
+          <input id="add-username" autocomplete="off" minlength="3" maxlength="40" pattern="[a-zA-Z0-9][a-zA-Z0-9._-]{2,39}" required>
+          <label for="add-password">Initial password</label>
+          <input id="add-password" type="password" autocomplete="new-password" minlength="12" maxlength="128" required>
+          <label for="add-role">Role</label>
+          <select id="add-role"><option value="editor">Editor</option><option value="viewer">Viewer</option><option value="admin">Administrator</option></select>
+          <button type="submit">Create account</button>
+        </form>
+        <section class="account-card">
+          <h2>Manage accounts</h2>
+          <p>Changing a role or disabling an account signs that account out. At least one active administrator must remain.</p>
+          <div id="account-users"></div>
+        </section>
+      </div>
+    </section>
+    <p class="account-note">This version runs on this computer. Accounts protect the local workspace; they do not publish it online or connect it to Phase 1.</p>
+  </main>
+</body>
+</html>

@@ -1,0 +1,498 @@
+{
+  "preparedAtUtc": "2026-09-18T09:55:51.7905500Z",
+  "purpose": "Source-only review input for the existing Divinenet repository",
+  "originalSourceUnmodified": true,
+  "manifestCovers": "Every other file in this ZIP; manifest excludes itself",
+  "files": [
+    {
+      "path": ".github/workflows/crm-quality.yml",
+      "bytes": 763,
+      "sha256": "4557986861815d4847c1b54beb49c263aa0e6153350951c9893d6d19b884033b"
+    },
+    {
+      "path": ".gitignore",
+      "bytes": 151,
+      "sha256": "dc3c05307e944f193471be20f7ee681da71ae6bd088910c67ae5776e3fbe473a"
+    },
+    {
+      "path": "apps.js",
+      "bytes": 49322,
+      "sha256": "269d410b01894524602add661a3fbdca5bf50fc796f6bb82974759f800c4049c"
+    },
+    {
+      "path": "auth.css",
+      "bytes": 3183,
+      "sha256": "d2b5f6f5a901aded6a4c371fd22f8951f7e73930cd5d74b8d1b88c49c16edeeb"
+    },
+    {
+      "path": "auth.html",
+      "bytes": 3850,
+      "sha256": "0056c9dcc3c968d9d19a0b92bbe236c8dc874a7e1fbf3146cce8188357be77b1"
+    },
+    {
+      "path": "auth.js",
+      "bytes": 10292,
+      "sha256": "cd15158c20a61eadb4dc4aea9c00bb8c0793cea33696f2d41de8c2c9b8dc9b54"
+    },
+    {
+      "path": "backend/.gitignore",
+      "bytes": 101,
+      "sha256": "b2e131ea9c1d9342eada7a8c318065696f725fc7ead5a511051d19aeca2c94e5"
+    },
+    {
+      "path": "backend/API_PLAN.md",
+      "bytes": 1703,
+      "sha256": "c79e061b9d2e380bcdc4d2e81a0fba6483f64c5fbbb89625d34063969a837af2"
+    },
+    {
+      "path": "backend/app.js",
+      "bytes": 13683,
+      "sha256": "8ae4e29e7855ee0d6c89410762f44a3724b8e136a3b9f46f93f1f709d7794446"
+    },
+    {
+      "path": "backend/db/connection.js",
+      "bytes": 378,
+      "sha256": "2525251beaf874450f95ba07870bc8caa2878eb702defe138fcbbd215dd9ca87"
+    },
+    {
+      "path": "backend/db/migrate.js",
+      "bytes": 1178,
+      "sha256": "4aa4f3337ec12a7ffa14c998ae0d581c617a30013641767e1aba0012636b96c7"
+    },
+    {
+      "path": "backend/db/migrations/001_initial_schema.sql",
+      "bytes": 1105,
+      "sha256": "29b0b2dfb1b501565b9486976701844187e997f9821cccaac9f56c814046108d"
+    },
+    {
+      "path": "backend/db/normalise.js",
+      "bytes": 3189,
+      "sha256": "dc7541e9ed7e2ad7e2c6a356146e016953686bf865df01877577d28bf4a30c5e"
+    },
+    {
+      "path": "backend/LOCAL_IMAGE_RUNTIME.md",
+      "bytes": 7310,
+      "sha256": "40f65a3ab1c9048d200b0f6659d498284cf847a912bffc20aba7c83d643b4611"
+    },
+    {
+      "path": "backend/package-lock.json",
+      "bytes": 31998,
+      "sha256": "2ead3d800110e5a567bd5aa9b4385324c0d42cf7f4b7997a9cb32192c2f32d43"
+    },
+    {
+      "path": "backend/package.json",
+      "bytes": 451,
+      "sha256": "ee67aec92759596bca62da17068ec8a42a1872ae12ff54084da16e46ab9f9bce"
+    },
+    {
+      "path": "backend/README.md",
+      "bytes": 4382,
+      "sha256": "c9c930b57eddd8ba9b106da97f70f854a15609cdb4a18958596e12a91ee7827b"
+    },
+    {
+      "path": "backend/repositories/campaignRepository.js",
+      "bytes": 1627,
+      "sha256": "fce964a0f6e53647e14e29b07c28deef6b34726480d1d239b015e040a327a323"
+    },
+    {
+      "path": "backend/repositories/directoryRepository.js",
+      "bytes": 1501,
+      "sha256": "75141eadba27105437b5904e63a1a8f67b146e83b1dcb2ed729a50e4bca09277"
+    },
+    {
+      "path": "backend/repositories/leadRepository.js",
+      "bytes": 3263,
+      "sha256": "35bee219f44c80335c366556706956a122d5616fe2c55d92f60797962a65080e"
+    },
+    {
+      "path": "backend/reset-image-runtime.js",
+      "bytes": 2573,
+      "sha256": "299b9103f4bf6ce7974731213ba0e01aef8ca22d72402a4be33c7148bfd23e92"
+    },
+    {
+      "path": "backend/server.js",
+      "bytes": 907,
+      "sha256": "22f3b392b609ffd64ee51cbb05f0449bb57856d2f521ad9a58be98c81c7451f5"
+    },
+    {
+      "path": "backend/services/analytics-service.js",
+      "bytes": 2018,
+      "sha256": "abc2870591d58a9326ec651b8f3dff38e3c07c3c912977b075a70b7d6c1c0cbf"
+    },
+    {
+      "path": "backend/services/campaign-save.js",
+      "bytes": 2228,
+      "sha256": "37d6cc319e524c8c5eaf90612aea6575bbd1a3c67179170dbf60921e35d508d1"
+    },
+    {
+      "path": "backend/services/content-workflow.js",
+      "bytes": 1337,
+      "sha256": "efe849acbfb825fdd47f04fe2e00abe3637a78332ccf31e1ca9246d5e8bae2ed"
+    },
+    {
+      "path": "backend/services/image-assets.js",
+      "bytes": 13154,
+      "sha256": "065374a19afb8309f33b16115b1039cbdda46b89fb55e6973dd8ce615de57057"
+    },
+    {
+      "path": "backend/services/image-runtime-guard.js",
+      "bytes": 1022,
+      "sha256": "84f98e2d58058b260acef9c3cc17e13df99a027d6a54d3747c3c49d09f70d463"
+    },
+    {
+      "path": "backend/services/lead-pipeline.js",
+      "bytes": 1396,
+      "sha256": "202e8faac44187b90c93ecff2f012f848c3711a549b70a4744ecc2d67a2b9cd3"
+    },
+    {
+      "path": "backend/services/lead-scoring.js",
+      "bytes": 803,
+      "sha256": "fd7bda7349b34ec7fca10f631d020b4b8a25ca3ac716c1201551bdeb77b9998b"
+    },
+    {
+      "path": "backend/services/local-access.js",
+      "bytes": 12875,
+      "sha256": "a8b2a59cf3175dcaa0d389f094c2348ded40e203e364bd1648ce7b1e51dedc28"
+    },
+    {
+      "path": "backend/services/local-image-provider.js",
+      "bytes": 3537,
+      "sha256": "f51bf9dfd45a3c64d3606dfe21153fe53364078a33a6fb218a9fe4803f27230e"
+    },
+    {
+      "path": "backend/services/local-intake.js",
+      "bytes": 6843,
+      "sha256": "769ac18a27fdf78cb8b64068a978b80de729e68adc4b0f670490931ef3ff993c"
+    },
+    {
+      "path": "backend/services/phase1-adapter.js",
+      "bytes": 1790,
+      "sha256": "5a498139bb0bc149dc249c7f64d92fff4ed1557455bae56faf85a961fd5be1c7"
+    },
+    {
+      "path": "backend/services/png-validation.js",
+      "bytes": 3664,
+      "sha256": "195bac1310bf3ed945f4f148c5d23df7f31bdae2dcf278065970a0daedd9b803"
+    },
+    {
+      "path": "backend/services/social-adapter.js",
+      "bytes": 1741,
+      "sha256": "19da487b037b66775de06ab749b68057f8011d5fa79de61c81857e5a37799675"
+    },
+    {
+      "path": "backend/test/analytics-service.test.js",
+      "bytes": 4119,
+      "sha256": "bcd3bbcc62eebe4669c778d6064cd97b2107d5c49da69fa971eb5563c9d50c3a"
+    },
+    {
+      "path": "backend/test/api.test.js",
+      "bytes": 15811,
+      "sha256": "69e7ce6adbbdbd5d951fcddbf5b2fea5e4df652956ff0b499452008747978a4a"
+    },
+    {
+      "path": "backend/test/backup-restore.test.js",
+      "bytes": 12510,
+      "sha256": "1a823306383226a61df336204a51d099b1ddb4f6248cd724d931202c4b9f8fb8"
+    },
+    {
+      "path": "backend/test/banner-workflow.test.js",
+      "bytes": 14102,
+      "sha256": "702ebf498ee5cf7fc7438db50c7d34d565f8f3410f9cc68f89396a83336ec6d7"
+    },
+    {
+      "path": "backend/test/campaign.test.js",
+      "bytes": 3814,
+      "sha256": "466c30964b707e4fb89026adcf3711dc055ce4a82a0e3494618bf8489b9b08ee"
+    },
+    {
+      "path": "backend/test/content-workflow.test.js",
+      "bytes": 2782,
+      "sha256": "7ae58623aeacca73e5922c31034b7b30b1efee5855e22b84ca3717d757e772d2"
+    },
+    {
+      "path": "backend/test/inline-handoff.test.js",
+      "bytes": 10477,
+      "sha256": "bca935acb5fbb8e877578e38c7913d39ae246348447b4d51347eec4a86f3148f"
+    },
+    {
+      "path": "backend/test/lead-pipeline.test.js",
+      "bytes": 1729,
+      "sha256": "3429e730ea0b80b6675973cfb795a21e4a5c9cd5d87f34c871a96c2f77a2dc14"
+    },
+    {
+      "path": "backend/test/lead-scoring.test.js",
+      "bytes": 1451,
+      "sha256": "fe05257b233058b4d75260271900bac3c084be7ff3e109dbd29ab8b75d5b26ea"
+    },
+    {
+      "path": "backend/test/lead.test.js",
+      "bytes": 5713,
+      "sha256": "5620f25592137b5b749ca8d7b9bc6f516f9eca73d66a2093e132afb304b45380"
+    },
+    {
+      "path": "backend/test/local-access.test.js",
+      "bytes": 16387,
+      "sha256": "18f93f0f3155a9b4cc6e56fc030701001eb4437156d178b90b7c2d4bfe381837"
+    },
+    {
+      "path": "backend/test/local-image-provider.test.js",
+      "bytes": 8124,
+      "sha256": "660cbdbd8fe7787a0d3e1375a69cbb7747d7a8581e207a743f705dc0631cc62b"
+    },
+    {
+      "path": "backend/test/local-intake-and-upload.test.js",
+      "bytes": 11733,
+      "sha256": "66e959f7e94d8c6f766bf43bc6be7f1bb2e962c00455c9d598576d9fefc86851"
+    },
+    {
+      "path": "backend/test/operational-kpis.test.js",
+      "bytes": 1222,
+      "sha256": "548349e10abc401d724d482e85b8678ddc7dba9b7fac006065f3848d55cd6941"
+    },
+    {
+      "path": "backend/test/phase1-adapter.test.js",
+      "bytes": 3317,
+      "sha256": "647dd66adae2dd76f27872a49fe8ffc370cc203b826906bbc64c03decfdea8e1"
+    },
+    {
+      "path": "backend/test/social-adapter.test.js",
+      "bytes": 3499,
+      "sha256": "520e7eedc1628bd6ad0ee9afd75945af2a36d161bbcfd35fa906d867e4c1fe63"
+    },
+    {
+      "path": "backend/validation.js",
+      "bytes": 3171,
+      "sha256": "3f1c7de4b276fc104350181af28119382cc9db7abb79166022f8b962814e3242"
+    },
+    {
+      "path": "BACKUP-CRM.cmd",
+      "bytes": 840,
+      "sha256": "b08b35df0a3e238a6ac2eb5c09c45a47c2be1f5b7d5e35f885a630ce1ed302b0"
+    },
+    {
+      "path": "capture.css",
+      "bytes": 1713,
+      "sha256": "4ac0a257d116f1f3121dc59ffa2afb0907659811ff8dade5e8e08a9317fb60a8"
+    },
+    {
+      "path": "capture.html",
+      "bytes": 1516,
+      "sha256": "1995fa437567e26bfd87c6ea94443918e7e652ba331f59b92b5ef4ff87cdea7f"
+    },
+    {
+      "path": "capture.js",
+      "bytes": 3148,
+      "sha256": "02394c34e782ed4bec2be2c1e7ab0429edaccedf0207ddd6f7c7685685fd1d6c"
+    },
+    {
+      "path": "database-models/models.js",
+      "bytes": 786,
+      "sha256": "5398e955769a38b855b45156bde27a7eaea0077f3c4c5b3a4454df428855133a"
+    },
+    {
+      "path": "database-models/test-data.js",
+      "bytes": 1136,
+      "sha256": "b24ee1a0b47b5d5039617ab8a9f627d44cd12723824f74d0af364c0c6dbcf555"
+    },
+    {
+      "path": "index.html",
+      "bytes": 3062,
+      "sha256": "d3e1a4c90d0aca2eeca3d9f9d0b54c12f427ce039d180fa77d31f081256ad80b"
+    },
+    {
+      "path": "integration-prep/client.cjs",
+      "bytes": 4220,
+      "sha256": "06631bae8ae2e9d10cba83c77ed64c751798c40f82fc17c9cae01b7d08ce7e37"
+    },
+    {
+      "path": "integration-prep/contract.cjs",
+      "bytes": 2681,
+      "sha256": "f372fda39d4f5b8870f4109e21afecff3e328de6e13b5ebea99292ccc691157a"
+    },
+    {
+      "path": "integration-prep/demo.cjs",
+      "bytes": 1445,
+      "sha256": "cc499cb2bc59f70a6f4318fa437099ba57100aba0427de2101cb05ddd93d1c1e"
+    },
+    {
+      "path": "integration-prep/openapi.proposed.json",
+      "bytes": 8372,
+      "sha256": "349970ea684ee312d369f0688efa85942667014db0182e234b7fbec619c7dc96"
+    },
+    {
+      "path": "integration-prep/README.md",
+      "bytes": 5422,
+      "sha256": "487889ff7806069caf91fee141b982ae0d6d0b8da083c254ec6ed986419a481f"
+    },
+    {
+      "path": "integration-prep/simulator.cjs",
+      "bytes": 5880,
+      "sha256": "d57e0cc884d49afc983b11bf0659eed4f302807505f36533253731e3b7d7a70c"
+    },
+    {
+      "path": "integration-prep/test/prep.test.cjs",
+      "bytes": 10486,
+      "sha256": "27eeb7daf0b9fa4f1a53ec64f4797f28759807328bbd90b178079c418440f4f5"
+    },
+    {
+      "path": "launcher.config.example.json",
+      "bytes": 69,
+      "sha256": "55fedbc768798feba30d3300f476db5a4d7bed1e459727335c87ab58688d6758"
+    },
+    {
+      "path": "lead-prototype.html",
+      "bytes": 403,
+      "sha256": "83cad38daf86d2be20cc1dd2c921cd9786a71afb1cb6666ea64d61417b1ec3e6"
+    },
+    {
+      "path": "lead-prototype.js",
+      "bytes": 128,
+      "sha256": "db8f3170a66ddddc1d7b6e73bc214aa2b545959823aa28ce7c98f0ae583c2dc3"
+    },
+    {
+      "path": "lead-style.css",
+      "bytes": 83,
+      "sha256": "b21bc2f205dcbcb44ffa5a0a9e1da545c7988d7178a7c66a2f829b2c9b5634ff"
+    },
+    {
+      "path": "mock-integrations/claude-mock.js",
+      "bytes": 293,
+      "sha256": "9b4e55025697f326acf89c66bf0f0cb0022275aa5b8121df751a5a41844916d7"
+    },
+    {
+      "path": "mock-integrations/linkedin-mock.js",
+      "bytes": 271,
+      "sha256": "913e2ec5095a3baeb62f839434de02d5819c3441f5a3c20586715b7f63910a79"
+    },
+    {
+      "path": "mock-integrations/live-adapter.js",
+      "bytes": 211,
+      "sha256": "569215aed3fbb39ffc9064f8970351c51b32985b37e02697001b9a831367aca1"
+    },
+    {
+      "path": "mock-integrations/meta-mock.js",
+      "bytes": 489,
+      "sha256": "28259c610470f805548d03005c453561b69203c8c92bd26b5918f68afd447b15"
+    },
+    {
+      "path": "mock-integrations/mock-demo.js",
+      "bytes": 819,
+      "sha256": "ed159c0be643968613e8bd52924345a56fbe25700dd6d193542e3ee4c9857b9b"
+    },
+    {
+      "path": "mock-integrations/phase1-mock.js",
+      "bytes": 957,
+      "sha256": "8bf81614a63ec060b3cfcf1516d192d46ad3cb5bc3786ae199836b07d3034ce3"
+    },
+    {
+      "path": "package-lock.json",
+      "bytes": 1806,
+      "sha256": "e116a5a95bc3b763d494b593dde9aa14ba93099280f8e64e3ed181127bcc6dfe"
+    },
+    {
+      "path": "package.json",
+      "bytes": 980,
+      "sha256": "5aeaecd500ec8ab69e3a1b4ca64ff13c57c03ebc832b68cad32bd39158e6d26e"
+    },
+    {
+      "path": "README.md",
+      "bytes": 1352,
+      "sha256": "e620f272edf02701356cac1359ce7db5460d9b6ead0a057751677bf9d5f73cfb"
+    },
+    {
+      "path": "RESTORE-CRM.cmd",
+      "bytes": 280,
+      "sha256": "9beba78211c1c1635909df7414d6970eae506fc5b4a0f71673d1ab5e51f3b12e"
+    },
+    {
+      "path": "scripts/access-browser-check.cjs",
+      "bytes": 9648,
+      "sha256": "d5f7508a110587dab69b1787f93e6519951de7282318788988490a352a3ee969"
+    },
+    {
+      "path": "scripts/ai-runtime-files.json",
+      "bytes": 3117,
+      "sha256": "54367e686a9552dd72b808c4632c2f22c00623fa73578d279b28a94892091bea"
+    },
+    {
+      "path": "scripts/backup-crm.cjs",
+      "bytes": 1301,
+      "sha256": "06abcd185042d15a8e701e36c597cd13ef8157400eb74310df78dc7664f86af7"
+    },
+    {
+      "path": "scripts/browser-check.cjs",
+      "bytes": 9573,
+      "sha256": "c88e74510a3cf23660edac3ee077b1fd8565b982c531abe53a343f2be96b68df"
+    },
+    {
+      "path": "scripts/campaign-banner-check.cjs",
+      "bytes": 29143,
+      "sha256": "a814491ff0e278bf9e88eb56297df32381562bb740cdfffd751dfbb6ece28439"
+    },
+    {
+      "path": "scripts/LAUNCHER.md",
+      "bytes": 4639,
+      "sha256": "fc2807320aec2f2ca3b6702d0e3e339d142dfc591e77fa3493b97ab2c4b637d1"
+    },
+    {
+      "path": "scripts/local-workflows-check.cjs",
+      "bytes": 13015,
+      "sha256": "1f665c3387ea7a6a98280acfca21c21f2eecf245af2828cedc6d6a088d9e49d2"
+    },
+    {
+      "path": "scripts/notification-check.cjs",
+      "bytes": 13621,
+      "sha256": "f0da8736a73227b5b7e32f0cb48b187abc89b1a4abe7cfea72dcb0592d2d7268"
+    },
+    {
+      "path": "scripts/recovery-check.test.cjs",
+      "bytes": 2788,
+      "sha256": "ddc1eba54c46f8c4d4bb1810c1eb80f924c690a437285f130307b09d77adec0f"
+    },
+    {
+      "path": "scripts/restore-crm.cjs",
+      "bytes": 4658,
+      "sha256": "191cca32858a6ba9a51c2489171847f8e7877e4f5e0a3fa66597678206c4a651"
+    },
+    {
+      "path": "scripts/start-crm.cjs",
+      "bytes": 19854,
+      "sha256": "53b84b7fa8f02c32bea32933d17dc1094aaeacb11acd6b7ddb3dd8c1c28c4ba1"
+    },
+    {
+      "path": "scripts/start-crm.test.cjs",
+      "bytes": 4339,
+      "sha256": "624607be73a81937e8115377fd9f4bf3f28beb9a2fc202781e0ed7802da76897"
+    },
+    {
+      "path": "scripts/verify-local.cjs",
+      "bytes": 3119,
+      "sha256": "b1ef2db62dcd53617389140eff242e1c5fa13fc35cf49e5b9c06464489a6f2f6"
+    },
+    {
+      "path": "SOURCE_TRANSFER.md",
+      "bytes": 5440,
+      "sha256": "53956999ffc8a88250904226decb4f9cfdb5ad94176ce481654494492d4abd09"
+    },
+    {
+      "path": "START_HERE.md",
+      "bytes": 3838,
+      "sha256": "25fffd130c2269dc1f78819b42dc85c69d8fa630758fa4dee1578b90c8e4ab07"
+    },
+    {
+      "path": "START-CRM.cmd",
+      "bytes": 856,
+      "sha256": "a45c3d3a8a30d9db4757d19a28712ca4760ff5bb4c4c167cb0b0e9ca71b920b1"
+    },
+    {
+      "path": "STOP-CRM.cmd",
+      "bytes": 75,
+      "sha256": "8ed9ea8b477427910b6fcdb63c37854face19b3db27ecf69535707308c0eb1ef"
+    },
+    {
+      "path": "style.css",
+      "bytes": 14926,
+      "sha256": "b9edec5d1f7359c7b785c8bd49f59ad34b91a8377c195dd2ed882671b2ff290f"
+    }
+  ]
+}

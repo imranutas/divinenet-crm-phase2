@@ -1,0 +1,32 @@
+:root { --access-ink: #163334; --access-teal: #086d65; --access-line: #cedcda; }
+.account-page { margin: 0; background: #f2f6f5; color: var(--access-ink); font-family: system-ui, -apple-system, "Segoe UI", sans-serif; line-height: 1.55; }
+.account-shell { max-width: 760px; padding: 40px 22px 60px; margin: auto; }
+.account-brand { display: inline-flex; align-items: center; gap: 12px; color: var(--access-ink); text-decoration: none; font-size: 32px; font-weight: 800; }
+.account-eyebrow { margin-top: 30px; letter-spacing: .14em; font-size: 12px; color: var(--access-teal); font-weight: 700; }
+.account-shell h1 { font-size: clamp(26px, 4vw, 36px); line-height: 1.2; }
+.account-shell h2 { margin: 0 0 16px; font-size: 23px; }
+.account-card { padding: 26px; margin-top: 22px; border: 1px solid var(--access-line); background: white; border-radius: 18px; }
+.account-card label { display: block; margin: 18px 0 6px; font-weight: 650; }
+.account-card input:not([type="checkbox"]), .account-card select { box-sizing: border-box; width: 100%; min-height: 46px; padding: 10px 12px; border: 1px solid #90aba7; border-radius: 8px; background: #fff; color: var(--access-ink); font: inherit; }
+.account-card small { display: block; margin-top: 5px; color: #4a6463; }
+.account-card button, .account-button { display: inline-block; box-sizing: border-box; border: 1px solid var(--access-teal); background: var(--access-teal); color: white; border-radius: 9px; padding: 11px 18px; margin-top: 20px; font: inherit; font-weight: 650; text-decoration: none; cursor: pointer; }
+.account-card button.secondary { color: var(--access-teal); background: white; }
+.account-card button:disabled { opacity: .55; cursor: wait; }
+.account-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 14px; }
+.account-actions p { flex: 1 1 100%; margin: 0; }
+.account-actions button, .account-actions .account-button { margin: 0; }
+.account-message { border: 1px solid #9bbdb4; background: #e4f5ee; border-radius: 9px; padding: 13px 16px; }
+.account-message.error { color: #8c281f; background: #fff0ed; border-color: #e7b4ac; }
+.account-note { font-size: 13px; color: #536e6b; margin-top: 28px; }
+.account-user { border-top: 1px solid var(--access-line); margin-top: 22px; padding-top: 20px; }
+.account-user h3 { margin: 0 0 4px; overflow-wrap: anywhere; }
+.account-user .account-checkbox { display: flex; gap: 9px; align-items: center; }
+.account-user input[type="checkbox"] { width: 19px; height: 19px; }
+.account-reset { margin-top: 15px; }
+.account-reset summary { color: var(--access-teal); cursor: pointer; }
+.account-shell :focus-visible, #account-controls :focus-visible { outline: 3px solid #947014; outline-offset: 3px; }
+#account-controls { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; font-size: 12px; }
+#account-controls a, #account-controls button { color: #086d65; background: none; border: 0; font: inherit; text-decoration: underline; cursor: pointer; padding: 5px; }
+#account-controls .account-role { color: #536e6b; }
+[hidden] { display: none !important; }
+@media (max-width: 480px) { .account-shell { padding: 25px 14px; } .account-card { padding: 20px 16px; } }
